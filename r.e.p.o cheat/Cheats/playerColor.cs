@@ -1,4 +1,4 @@
-﻿//player color function from https://github.com/svind1er
+﻿//player color function from https://github.com/svind1er fixed by me
 using System;
 using System.Reflection;
 using UnityEngine;

@@ -38,8 +38,24 @@ namespace r.e.p.o_cheat
                     var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (spawnObjectMethod != null)
                     {
+                        // Obter o jogador local
+                        GameObject player = GetLocalPlayer();
+                        Vector3 spawnPosition;
+
+                        if (player != null)
+                        {
+                            // Usar a posição do pé do personagem (base do transform)
+                            spawnPosition = player.transform.position;
+                            Hax2.Log1("Spawning item at player's feet: " + spawnPosition.ToString());
+                        }
+                        else
+                        {
+                            // Fallback para posição padrão se o jogador não for encontrado
+                            spawnPosition = new Vector3(0f, 1f, 0f);
+                            Hax2.Log1("Player not found, using default spawn position.");
+                        }
+
                         GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
-                        Vector3 spawnPosition = new Vector3(0f, 1f, 0f);
                         string path = "Valuables/";
                         spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
                         Hax2.Log1("Item spawned successfully.");
@@ -58,6 +74,50 @@ namespace r.e.p.o_cheat
             {
                 Hax2.Log1("DebugAxel type not found.");
             }
+        }
+
+        // Método auxiliar para encontrar o jogador local
+        private static GameObject GetLocalPlayer()
+        {
+            // Obter a lista de jogadores do jogo
+            var players = SemiFunc.PlayerGetList();
+            if (players != null)
+            {
+                foreach (var player in players)
+                {
+                    // Obter o PhotonView do jogador
+                    var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (photonViewField != null)
+                    {
+                        var photonView = photonViewField.GetValue(player) as PhotonView;
+                        if (photonView != null && photonView.IsMine) // Verifica se é o jogador local
+                        {
+                            // Obter o GameObject associado
+                            var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
+                            if (gameObjectProperty != null)
+                            {
+                                return gameObjectProperty.GetValue(player) as GameObject;
+                            }
+                            return photonView.gameObject; // Fallback para o GameObject do PhotonView
+                        }
+                    }
+                }
+            }
+
+            // Fallback usando PhotonNetwork.LocalPlayer
+            if (PhotonNetwork.LocalPlayer != null)
+            {
+                foreach (var photonView in UnityEngine.Object.FindObjectsOfType<PhotonView>())
+                {
+                    if (photonView.Owner == PhotonNetwork.LocalPlayer && photonView.IsMine)
+                    {
+                        return photonView.gameObject;
+                    }
+                }
+            }
+
+            Hax2.Log1("Nenhum jogador local encontrado!");
+            return null; // Nenhum jogador encontrado
         }
 
         public static void UpdateEnemyList()
