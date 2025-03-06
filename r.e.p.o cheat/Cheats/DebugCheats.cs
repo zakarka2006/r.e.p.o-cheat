@@ -9,14 +9,18 @@ namespace r.e.p.o_cheat
     static class DebugCheats
     {
         private static int frameCounter = 0;
-        public static bool drawEspBool = false;
-        private static List<Enemy> enemyList = new List<Enemy>(); // Única definição de enemyList
-        private static Camera cachedCamera; // Cache para Camera.main
-        private static float scaleX, scaleY; // Cache para escalas de tela
+        public static bool drawEspBool = false; 
+        public static bool drawItemEspBool = false;
+        private static List<Enemy> enemyList = new List<Enemy>();
+        private static List<object> valuableObjects = new List<object>(); 
+        private static Camera cachedCamera;
+        private static float scaleX, scaleY;
         public static Texture2D texture2;
+        private static float lastUpdateTime = 0f;
+        private const float updateInterval = 0.5f; 
+        private static GameObject localPlayer; 
 
 
-        // Inicialização estática
         static DebugCheats()
         {
             cachedCamera = Camera.main;
@@ -25,8 +29,80 @@ namespace r.e.p.o_cheat
                 scaleX = (float)Screen.width / cachedCamera.pixelWidth;
                 scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
+            UpdateLists();
+            UpdateLocalPlayer(); 
+        }
+        private static void UpdateLists()
+        {
+            enemyList.Clear();
+            var enemyDirectorType = Type.GetType("EnemyDirector, Assembly-CSharp");
+            if (enemyDirectorType != null)
+            {
+                var enemyDirectorInstance = enemyDirectorType.GetField("instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+                if (enemyDirectorInstance != null)
+                {
+                    var enemiesSpawnedField = enemyDirectorType.GetField("enemiesSpawned", BindingFlags.Public | BindingFlags.Instance);
+                    if (enemiesSpawnedField != null)
+                    {
+                        var enemies = enemiesSpawnedField.GetValue(enemyDirectorInstance) as IEnumerable<object>;
+                        if (enemies != null)
+                        {
+                            foreach (var enemy in enemies)
+                            {
+                                if (enemy != null)
+                                {
+                                    var enemyInstanceField = enemy.GetType().GetField("enemyInstance", BindingFlags.NonPublic | BindingFlags.Instance)
+                                                          ?? enemy.GetType().GetField("Enemy", BindingFlags.NonPublic | BindingFlags.Instance)
+                                                          ?? enemy.GetType().GetField("childEnemy", BindingFlags.NonPublic | BindingFlags.Instance);
+                                    if (enemyInstanceField != null)
+                                    {
+                                        var enemyInstance = enemyInstanceField.GetValue(enemy) as Enemy;
+                                        if (enemyInstance != null && enemyInstance.gameObject != null && enemyInstance.gameObject.activeInHierarchy)
+                                        {
+                                            enemyList.Add(enemyInstance);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            valuableObjects.Clear();
+            var valuableArray = UnityEngine.Object.FindObjectsOfType(Type.GetType("ValuableObject, Assembly-CSharp"));
+            if (valuableArray != null)
+            {
+                valuableObjects.AddRange(valuableArray);
+            }
+
+            lastUpdateTime = Time.time;
+            Hax2.Log1($"Listas atualizadas: {enemyList.Count} inimigos, {valuableObjects.Count} itens.");
         }
 
+        private static void UpdateLocalPlayer()
+        {
+            var players = SemiFunc.PlayerGetList();
+            if (players != null)
+            {
+                foreach (var player in players)
+                {
+                    var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (photonViewField != null)
+                    {
+                        var photonView = photonViewField.GetValue(player) as PhotonView;
+                        if (photonView != null && photonView.IsMine)
+                        {
+                            var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
+                            localPlayer = gameObjectProperty != null ? (gameObjectProperty.GetValue(player) as GameObject) : photonView.gameObject;
+                            Hax2.Log1("Jogador local atualizado: " + localPlayer.name);
+                            return;
+                        }
+                    }
+                }
+            }
+            Hax2.Log1("Nenhum jogador local encontrado para atualizar.");
+        }
         public static void SpawnItem()
         {
             var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
@@ -38,19 +114,16 @@ namespace r.e.p.o_cheat
                     var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (spawnObjectMethod != null)
                     {
-                        // Obter o jogador local
                         GameObject player = GetLocalPlayer();
                         Vector3 spawnPosition;
 
                         if (player != null)
                         {
-                            // Usar a posição do pé do personagem (base do transform)
                             spawnPosition = player.transform.position;
                             Hax2.Log1("Spawning item at player's feet: " + spawnPosition.ToString());
                         }
                         else
                         {
-                            // Fallback para posição padrão se o jogador não for encontrado
                             spawnPosition = new Vector3(0f, 1f, 0f);
                             Hax2.Log1("Player not found, using default spawn position.");
                         }
@@ -76,35 +149,30 @@ namespace r.e.p.o_cheat
             }
         }
 
-        // Método auxiliar para encontrar o jogador local
         private static GameObject GetLocalPlayer()
         {
-            // Obter a lista de jogadores do jogo
             var players = SemiFunc.PlayerGetList();
             if (players != null)
             {
                 foreach (var player in players)
                 {
-                    // Obter o PhotonView do jogador
                     var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     if (photonViewField != null)
                     {
                         var photonView = photonViewField.GetValue(player) as PhotonView;
-                        if (photonView != null && photonView.IsMine) // Verifica se é o jogador local
+                        if (photonView != null && photonView.IsMine) 
                         {
-                            // Obter o GameObject associado
                             var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
                             if (gameObjectProperty != null)
                             {
                                 return gameObjectProperty.GetValue(player) as GameObject;
                             }
-                            return photonView.gameObject; // Fallback para o GameObject do PhotonView
+                            return photonView.gameObject;
                         }
                     }
                 }
             }
 
-            // Fallback usando PhotonNetwork.LocalPlayer
             if (PhotonNetwork.LocalPlayer != null)
             {
                 foreach (var photonView in UnityEngine.Object.FindObjectsOfType<PhotonView>())
@@ -117,7 +185,7 @@ namespace r.e.p.o_cheat
             }
 
             Hax2.Log1("Nenhum jogador local encontrado!");
-            return null; // Nenhum jogador encontrado
+            return null; 
         }
 
         public static void UpdateEnemyList()
@@ -197,7 +265,14 @@ namespace r.e.p.o_cheat
 
         public static void DrawESP()
         {
-            if (!drawEspBool) return;
+            if (!drawEspBool && !drawItemEspBool) return;
+
+            if (Time.time - lastUpdateTime > updateInterval)
+            {
+                UpdateLists();
+                UpdateLocalPlayer();
+            }
+
             frameCounter++;
             if (frameCounter % 2 != 0) return;
 
@@ -213,52 +288,144 @@ namespace r.e.p.o_cheat
                 scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
 
-            if (texture2 == null)
+            // ESP de inimigos (mantido como está)
+            if (drawEspBool)
             {
-                Hax2.Log1("texture2 é nula!");
-                return;
+                foreach (var enemyInstance in enemyList)
+                {
+                    if (enemyInstance == null || !enemyInstance.gameObject.activeInHierarchy || enemyInstance.CenterTransform == null) continue;
+
+                    Vector3 footPosition = enemyInstance.transform.position;
+                    float enemyHeightEstimate = 2f;
+                    Vector3 headPosition = enemyInstance.transform.position + Vector3.up * enemyHeightEstimate;
+
+                    Vector3 screenFootPos = cachedCamera.WorldToScreenPoint(footPosition);
+                    Vector3 screenHeadPos = cachedCamera.WorldToScreenPoint(headPosition);
+
+                    if (screenFootPos.z > 0 && screenHeadPos.z > 0)
+                    {
+                        float footX = screenFootPos.x * scaleX;
+                        float footY = Screen.height - (screenFootPos.y * scaleY);
+                        float headY = Screen.height - (screenHeadPos.y * scaleY);
+
+                        float height = Mathf.Abs(footY - headY);
+                        float enemyScale = enemyInstance.transform.localScale.y;
+                        float baseWidth = enemyScale * 200f;
+                        float distance = screenFootPos.z;
+                        float width = (baseWidth / distance) * scaleX;
+
+                        width = Mathf.Clamp(width, 30f, height * 1.2f);
+                        height = Mathf.Clamp(height, 40f, 400f);
+
+                        float x = footX;
+                        float y = footY;
+
+                        Box(x, y, width, height, texture2, 1f);
+
+                        float labelWidth = 100f;
+                        float labelHeight = 20f;
+                        float labelX = x - labelWidth / 2f;
+                        float labelY = y - height - labelHeight - 5f;
+
+                        var enemyParent = enemyInstance.GetComponentInParent(Type.GetType("EnemyParent, Assembly-CSharp"));
+                        string enemyName = "Enemy";
+                        if (enemyParent != null)
+                        {
+                            var nameField = enemyParent.GetType().GetField("enemyName", BindingFlags.Public | BindingFlags.Instance);
+                            enemyName = nameField?.GetValue(enemyParent) as string ?? "Enemy";
+                        }
+
+                        string distanceText = "";
+                        if (localPlayer != null)
+                        {
+                            float distance2 = Vector3.Distance(localPlayer.transform.position, enemyInstance.transform.position);
+                            distanceText = $" [{distance2:F1}m]";
+                        }
+
+                        GUIStyle style = new GUIStyle(GUI.skin.label);
+                        style.alignment = TextAnchor.MiddleCenter;
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight), enemyName + distanceText, style);
+                    }
+                }
             }
 
-            foreach (var enemyInstance in enemyList)
+            if (drawItemEspBool)
             {
-                if (enemyInstance == null || !enemyInstance.gameObject.activeInHierarchy || enemyInstance.CenterTransform == null) continue;
 
-                Vector3 footPosition = enemyInstance.transform.position;
-                float enemyHeightEstimate = 2f;
-                Vector3 headPosition = enemyInstance.transform.position + Vector3.up * enemyHeightEstimate;
-
-                Vector3 screenFootPos = cachedCamera.WorldToScreenPoint(footPosition);
-                Vector3 screenHeadPos = cachedCamera.WorldToScreenPoint(headPosition);
-
-                if (screenFootPos.z > 0 && screenHeadPos.z > 0)
+                GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
                 {
-                    float footX = screenFootPos.x * scaleX;
-                    float footY = Screen.height - (screenFootPos.y * scaleY);
-                    float headY = Screen.height - (screenHeadPos.y * scaleY);
+                    normal = { textColor = Color.yellow },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 14,
+                    wordWrap = true
+                };
+                nameStyle.normal.background = null; 
+                nameStyle.border = new RectOffset(1, 1, 1, 1); 
 
-                    float height = Mathf.Abs(footY - headY);
-                    float enemyScale = enemyInstance.transform.localScale.y;
-                    float baseWidth = enemyScale * 200f;
-                    float distance = screenFootPos.z;
-                    float width = (baseWidth / distance) * scaleX;
+                // Estilo para o valor (verde)
+                GUIStyle valueStyle = new GUIStyle(GUI.skin.label)
+                {
+                    normal = { textColor = Color.green },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold
+                };
 
-                    width = Mathf.Clamp(width, 30f, height * 1.2f);
-                    height = Mathf.Clamp(height, 40f, 400f);
+                foreach (var valuableObject in valuableObjects)
+                {
+                    if (valuableObject == null) continue;
 
-                    float x = footX;
-                    float y = footY;
+                    var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
+                    if (transform == null || !transform.gameObject.activeInHierarchy) continue;
 
-                    Box(x, y, width, height, texture2, 1f);
+                    Vector3 itemPosition = transform.position;
+                    Vector3 screenPos = cachedCamera.WorldToScreenPoint(itemPosition);
 
-                    float labelWidth = 100f;
-                    float labelHeight = 20f;
-                    float labelX = x - labelWidth / 2f;
-                    float labelY = y - height - labelHeight - 5f;
-                    GUI.Label(new Rect(labelX + 28f, labelY, labelWidth, labelHeight), "Enemy");
+                    if (screenPos.z > 0 && screenPos.x > 0 && screenPos.x < Screen.width && screenPos.y > 0 && screenPos.y < Screen.height)
+                    {
+                        float x = screenPos.x * scaleX;
+                        float y = Screen.height - (screenPos.y * scaleY);
+
+                        string itemName;
+                        try
+                        {
+                            itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
+                            if (string.IsNullOrEmpty(itemName))
+                            {
+                                itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+                            Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
+                        }
+
+                        if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
+                        {
+                            itemName = itemName.Substring("Valuable".Length).Trim();
+                        }
+                        if (itemName.EndsWith(" (Clone)", StringComparison.OrdinalIgnoreCase))
+                        {
+                            itemName = itemName.Substring(0, itemName.Length - " (Clone)".Length).Trim();
+                        }
+
+                        var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+                        int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
+
+                        float labelWidth = 150f;
+                        float labelHeight = 40f;
+                        float labelX = x - labelWidth / 2f;
+                        float labelY = y - labelHeight - 5f;
+
+
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight / 2), itemName, nameStyle);
+
+                        GUI.Label(new Rect(labelX, labelY + labelHeight / 2, labelWidth, labelHeight / 2), itemValue.ToString() + "$", valueStyle);
+                    }
                 }
             }
         }
-
         public static void KillAllEnemies()
         {
             Hax2.Log1("Tentando matar todos os inimigos");

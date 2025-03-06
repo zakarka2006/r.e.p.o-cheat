@@ -15,5 +15,11 @@ namespace r.e.p.o_cheat
         }
 
         private static GameObject Load;
+
+        public static void UnloadCheat()
+        {
+            UnityEngine.Object.Destroy(Loader.Load);
+            System.GC.Collect();
+        }
     }
 }

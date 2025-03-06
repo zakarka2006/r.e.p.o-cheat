@@ -220,15 +220,6 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public void UnloadCheat()
-        {
-            Destroy(this.gameObject);
-            Health_Player.playerHealthInstance = null;
-            PlayerController.playerSpeedInstance = null;
-            Health_Player.playerMaxHealthInstance = null;
-            System.GC.Collect();
-        }
-
         public void Update()
         {
             if (Time.time >= nextUpdateTime)
@@ -262,7 +253,7 @@ namespace r.e.p.o_cheat
             }
             if (Input.GetKeyDown(KeyCode.F10))
             {
-                UnloadCheat();
+                Loader.UnloadCheat();
             }
             if (Input.GetKeyDown(KeyCode.F12))
             {
@@ -465,13 +456,14 @@ namespace r.e.p.o_cheat
         }
         public void OnGUI()
         {
-            if (DebugCheats.drawEspBool)
+            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool)
             {
                 DebugCheats.DrawESP();
             }
             UIHelper.ResetGrid();
 
             GUI.Label(new Rect(10, 10, 200, 30), "DARK CHEAT | DEL - MENU");
+            GUI.Label(new Rect(150, 10, 200, 30), "MADE BY Github/D4rkks");
 
             if (showMenu)
             {
@@ -519,7 +511,6 @@ namespace r.e.p.o_cheat
                     Debug.Log("Tentativa de matar o jogador selecionado realizada.");
                 }
 
-                // Corrigido o God Mode com ButtonBool
                 bool newGodModeState = UIHelper.ButtonBool("God Mode", godModeActive, 170, 580);
                 if (newGodModeState != godModeActive)
                 {
@@ -549,8 +540,9 @@ namespace r.e.p.o_cheat
                 sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 170, 800);
 
                 DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 170, 820);
+                DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 170, 850); 
 
-                bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 860);
+                bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 870);
                 if (newPlayerColorState != playerColor.isRandomizing)
                 {
                     playerColor.isRandomizing = newPlayerColorState;
