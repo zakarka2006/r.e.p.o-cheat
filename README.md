@@ -12,11 +12,11 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Revive Selected Player<br />
 - Spawn MoneyBag<br />
 - Change Speed
-- Enemy Esp (not optimized yet but working)
+- Enemy Esp
 - Infinity Stamina
 - Send Selected Player To Void (not working yet)
 - Kill ALl Enemies
-- Kill Selected Player (not working yet)
+- Kill Selected Player
 - Player RGB Skin<br /> (contribution from https://github.com/svind1er)
 
 # **TO-DO:**
