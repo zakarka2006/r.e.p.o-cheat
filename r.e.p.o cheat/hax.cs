@@ -542,7 +542,7 @@ namespace r.e.p.o_cheat
                 DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 170, 820);
                 DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 170, 850); 
 
-                bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 870);
+                bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 880);
                 if (newPlayerColorState != playerColor.isRandomizing)
                 {
                     playerColor.isRandomizing = newPlayerColorState;

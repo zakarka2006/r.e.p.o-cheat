@@ -105,6 +105,43 @@ namespace r.e.p.o_cheat
         }
         public static void SpawnItem()
         {
+            if (!PhotonNetwork.IsConnected)
+            {
+                Hax2.Log1("Photon not connected. SpawnItem only works in multiplayer.");
+                return;
+            }
+
+            // Se for o Master Client, spawnar diretamente
+            if (PhotonNetwork.IsMasterClient)
+            {
+                SpawnItemLocally();
+            }
+            else
+            {
+                // Se não for o Master Client, usar o PhotonView do jogador local para enviar RPC
+                GameObject localPlayer = GetLocalPlayer();
+                if (localPlayer != null)
+                {
+                    PhotonView photonView = localPlayer.GetComponent<PhotonView>();
+                    if (photonView != null)
+                    {
+                        photonView.RPC("SpawnItemRPC", RpcTarget.MasterClient);
+                        Hax2.Log1("RPC sent to Master Client to spawn item.");
+                    }
+                    else
+                    {
+                        Hax2.Log1("No PhotonView found on local player to send RPC.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1("Local player not found to send RPC.");
+                }
+            }
+        }
+
+        private static void SpawnItemLocally()
+        {
             var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
             if (debugAxelType != null)
             {
@@ -130,8 +167,13 @@ namespace r.e.p.o_cheat
 
                         GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
                         string path = "Valuables/";
+
+                        // Instanciar o item via Photon para sincronização
+                        GameObject spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity);
+                        Hax2.Log1("Item spawned successfully via Photon: " + spawnedItem.name);
+
+                        // Se o SpawnObject ainda precisar ser chamado no DebugAxel, invoque-o
                         spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
-                        Hax2.Log1("Item spawned successfully.");
                     }
                     else
                     {
@@ -149,6 +191,15 @@ namespace r.e.p.o_cheat
             }
         }
 
+        // Método RPC (deve estar em uma classe com PhotonView, como o jogador)
+        [PunRPC]
+        private static void SpawnItemRPC()
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                SpawnItemLocally();
+            }
+        }
         private static GameObject GetLocalPlayer()
         {
             var players = SemiFunc.PlayerGetList();
