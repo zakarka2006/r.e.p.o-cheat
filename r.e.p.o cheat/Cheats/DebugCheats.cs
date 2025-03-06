@@ -288,9 +288,18 @@ namespace r.e.p.o_cheat
                 scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
 
-            // ESP de inimigos (mantido como está)
+            // ESP de inimigos com altura dinâmica para nomes longos
             if (drawEspBool)
             {
+                // Estilo para o nome do inimigo
+                GUIStyle enemyStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    wordWrap = true, // Permitir quebra de linha
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold // Opcional, para consistência
+                };
+
                 foreach (var enemyInstance in enemyList)
                 {
                     if (enemyInstance == null || !enemyInstance.gameObject.activeInHierarchy || enemyInstance.CenterTransform == null) continue;
@@ -322,10 +331,8 @@ namespace r.e.p.o_cheat
 
                         Box(x, y, width, height, texture2, 1f);
 
-                        float labelWidth = 100f;
-                        float labelHeight = 20f;
-                        float labelX = x - labelWidth / 2f;
-                        float labelY = y - height - labelHeight - 5f;
+                        float labelWidth = 100f; // Largura fixa da label
+                        float labelX = x - labelWidth / 2f; // Centro da caixa
 
                         var enemyParent = enemyInstance.GetComponentInParent(Type.GetType("EnemyParent, Assembly-CSharp"));
                         string enemyName = "Enemy";
@@ -341,28 +348,30 @@ namespace r.e.p.o_cheat
                             float distance2 = Vector3.Distance(localPlayer.transform.position, enemyInstance.transform.position);
                             distanceText = $" [{distance2:F1}m]";
                         }
+                        string fullText = enemyName + distanceText;
 
-                        GUIStyle style = new GUIStyle(GUI.skin.label);
-                        style.alignment = TextAnchor.MiddleCenter;
-                        GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight), enemyName + distanceText, style);
+                        // Calcular altura dinâmica baseada no texto
+                        float labelHeight = enemyStyle.CalcHeight(new GUIContent(fullText), labelWidth);
+                        float labelY = y - height - labelHeight; // Posicionar acima da caixa com altura dinâmica
+
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight), fullText, enemyStyle);
                     }
                 }
             }
 
+            // ESP de itens (mantido como na última versão)
             if (drawItemEspBool)
             {
-
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
                 {
                     normal = { textColor = Color.yellow },
                     alignment = TextAnchor.MiddleCenter,
                     fontSize = 14,
-                    wordWrap = true
+                    fontStyle = FontStyle.Bold,
+                    wordWrap = true,
+                    border = new RectOffset(1, 1, 1, 1)
                 };
-                nameStyle.normal.background = null; 
-                nameStyle.border = new RectOffset(1, 1, 1, 1); 
 
-                // Estilo para o valor (verde)
                 GUIStyle valueStyle = new GUIStyle(GUI.skin.label)
                 {
                     normal = { textColor = Color.green },
@@ -414,14 +423,14 @@ namespace r.e.p.o_cheat
                         int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
 
                         float labelWidth = 150f;
-                        float labelHeight = 40f;
+                        float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(itemValue.ToString() + "$"), labelWidth);
+                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(itemName), labelWidth);
+                        float totalHeight = nameLabelHeight + valueLabelHeight + 5f;
                         float labelX = x - labelWidth / 2f;
-                        float labelY = y - labelHeight - 5f;
+                        float labelY = y - totalHeight - 5f;
 
-
-                        GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight / 2), itemName, nameStyle);
-
-                        GUI.Label(new Rect(labelX, labelY + labelHeight / 2, labelWidth, labelHeight / 2), itemValue.ToString() + "$", valueStyle);
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), itemName, nameStyle);
+                        GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
                     }
                 }
             }

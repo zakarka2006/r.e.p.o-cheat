@@ -1,7 +1,7 @@
-﻿//player color function from https://github.com/svind1er fixed by me
-using System;
+﻿using System;
 using System.Reflection;
 using UnityEngine;
+using Photon.Pun;
 
 namespace r.e.p.o_cheat
 {
@@ -12,7 +12,7 @@ namespace r.e.p.o_cheat
         private static float changeInterval = 0.1f;
 
         private static Type colorControllerType;
-        private static object colorControllerInstance;
+        private static object colorControllerInstance; // Deve ser único por cliente
         private static MethodInfo playerSetColorMethod;
         private static bool isInitialized = false;
 
@@ -23,20 +23,38 @@ namespace r.e.p.o_cheat
             colorControllerType = Type.GetType("PlayerAvatar, Assembly-CSharp");
             if (colorControllerType == null)
             {
-                Hax2.Log1("colorControllerType not found.");
+                Hax2.Log1("colorControllerType (PlayerAvatar) not found.");
                 return;
             }
 
-            Hax2.Log1("colorControllerType found.");
-            colorControllerInstance = GameHelper.FindObjectOfType(colorControllerType);
+            Hax2.Log1("colorControllerType (PlayerAvatar) found.");
+
+            // Procurar o PlayerAvatar do jogador local
+            colorControllerInstance = null;
+            var photonViews = UnityEngine.Object.FindObjectsOfType<PhotonView>();
+            Hax2.Log1($"Found {photonViews.Length} PhotonViews in scene.");
+            foreach (var photonView in photonViews)
+            {
+                if (photonView != null && photonView.IsMine) // Apenas o jogador local
+                {
+                    var playerAvatar = photonView.gameObject.GetComponent(colorControllerType);
+                    if (playerAvatar != null)
+                    {
+                        colorControllerInstance = playerAvatar;
+                        Hax2.Log1($"Local PlayerAvatar found: {photonView.gameObject.name}, Owner: {photonView.Owner?.NickName}");
+                        break;
+                    }
+                }
+            }
+
             if (colorControllerInstance == null)
             {
-                Hax2.Log1("colorControllerInstance not found.");
+                Hax2.Log1("No local PlayerAvatar found for this client.");
                 return;
             }
 
-            Hax2.Log1("colorControllerInstance found.");
-            playerSetColorMethod = colorControllerType.GetMethod("PlayerAvatarSetColor");
+            // Buscar o método PlayerAvatarSetColor
+            playerSetColorMethod = colorControllerType.GetMethod("PlayerAvatarSetColor", BindingFlags.Public | BindingFlags.Instance);
             if (playerSetColorMethod == null)
             {
                 Hax2.Log1("PlayerAvatarSetColor method not found in PlayerAvatar.");
@@ -44,7 +62,7 @@ namespace r.e.p.o_cheat
             }
 
             isInitialized = true;
-            Hax2.Log1("playerColor initialized successfully.");
+            Hax2.Log1("playerColor initialized successfully for local player.");
         }
 
         public static void colorRandomizer()
@@ -53,15 +71,23 @@ namespace r.e.p.o_cheat
 
             if (!isInitialized || colorControllerInstance == null || playerSetColorMethod == null)
             {
+                Hax2.Log1("Randomizer skipped: Initialization failed or instance/method missing.");
                 return;
             }
 
             if (isRandomizing && Time.time - lastColorChangeTime >= changeInterval)
             {
                 var colorIndex = new System.Random().Next(0, 30);
-                playerSetColorMethod.Invoke(colorControllerInstance, new object[] { colorIndex });
-                lastColorChangeTime = Time.time;
-                Hax2.Log1($"Color changed to index: {colorIndex}");
+                try
+                {
+                    playerSetColorMethod.Invoke(colorControllerInstance, new object[] { colorIndex });
+                    lastColorChangeTime = Time.time;
+                    Hax2.Log1($"Local player color changed to index: {colorIndex}");
+                }
+                catch (Exception e)
+                {
+                    Hax2.Log1($"Error invoking PlayerAvatarSetColor: {e.Message}");
+                }
             }
         }
 
@@ -71,6 +97,7 @@ namespace r.e.p.o_cheat
             colorControllerType = null;
             colorControllerInstance = null;
             playerSetColorMethod = null;
+            Hax2.Log1("playerColor reset.");
         }
     }
 }
