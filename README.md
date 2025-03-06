@@ -18,10 +18,7 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Change Speed <br />
 - Enemy Esp<br />
 - Item Esp<br />
-- RGB Player Skin
-
-
-- Player RGB Skin<br /> (contribution from https://github.com/svind1er)
+- Player RGB Skin<br /> (partial contribution from https://github.com/svind1er)
 
 # **TO-DO:**
 
