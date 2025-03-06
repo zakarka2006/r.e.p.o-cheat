@@ -2,7 +2,7 @@
 made by D4rkks (and community)! (had to recreate repository cause im a git noob sorry)<br />
 Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 
-![image](https://github.com/user-attachments/assets/04d87f56-9811-4c90-83ff-eacef9d55890)
+![Uploading Screenshot_2.png…]()
 
 # **FUNCTIONS (still working on, i will release new versions whenever i add functions):**
 - Heal Player<br />
