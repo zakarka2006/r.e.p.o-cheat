@@ -463,7 +463,7 @@ namespace r.e.p.o_cheat
             UIHelper.ResetGrid();
 
             GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
-            GUI.Label(new Rect(190, 10, 200, 30), "MADE BY Github/D4rkks");
+            GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
 
             if (showMenu)
             {

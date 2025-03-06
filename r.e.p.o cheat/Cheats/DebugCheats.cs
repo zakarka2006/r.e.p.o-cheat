@@ -103,44 +103,11 @@ namespace r.e.p.o_cheat
             }
             Hax2.Log1("Nenhum jogador local encontrado para atualizar.");
         }
-        public static void SpawnItem()
-        {
-            if (!PhotonNetwork.IsConnected)
-            {
-                Hax2.Log1("Photon not connected. SpawnItem only works in multiplayer.");
-                return;
-            }
 
-            // Se for o Master Client, spawnar diretamente
-            if (PhotonNetwork.IsMasterClient)
-            {
-                SpawnItemLocally();
-            }
-            else
-            {
-                // Se não for o Master Client, usar o PhotonView do jogador local para enviar RPC
-                GameObject localPlayer = GetLocalPlayer();
-                if (localPlayer != null)
-                {
-                    PhotonView photonView = localPlayer.GetComponent<PhotonView>();
-                    if (photonView != null)
-                    {
-                        photonView.RPC("SpawnItemRPC", RpcTarget.MasterClient);
-                        Hax2.Log1("RPC sent to Master Client to spawn item.");
-                    }
-                    else
-                    {
-                        Hax2.Log1("No PhotonView found on local player to send RPC.");
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("Local player not found to send RPC.");
-                }
-            }
-        }
 
-        private static void SpawnItemLocally()
+        // Componente para sincronizar física (mantido)
+
+        public static void SpawnItemLocally(Vector3 spawnPosition)
         {
             var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
             if (debugAxelType != null)
@@ -151,28 +118,12 @@ namespace r.e.p.o_cheat
                     var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (spawnObjectMethod != null)
                     {
-                        GameObject player = GetLocalPlayer();
-                        Vector3 spawnPosition;
-
-                        if (player != null)
-                        {
-                            spawnPosition = player.transform.position;
-                            Hax2.Log1("Spawning item at player's feet: " + spawnPosition.ToString());
-                        }
-                        else
-                        {
-                            spawnPosition = new Vector3(0f, 1f, 0f);
-                            Hax2.Log1("Player not found, using default spawn position.");
-                        }
-
                         GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
                         string path = "Valuables/";
 
-                        // Instanciar o item via Photon para sincronização
                         GameObject spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity);
                         Hax2.Log1("Item spawned successfully via Photon: " + spawnedItem.name);
 
-                        // Se o SpawnObject ainda precisar ser chamado no DebugAxel, invoque-o
                         spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
                     }
                     else
@@ -190,54 +141,239 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("DebugAxel type not found.");
             }
         }
-
-        // Método RPC (deve estar em uma classe com PhotonView, como o jogador)
-        [PunRPC]
-        private static void SpawnItemRPC()
+        public static void SpawnItem()
         {
-            if (PhotonNetwork.IsMasterClient)
+            GameObject player = GetLocalPlayer();
+            if (player == null)
             {
-                SpawnItemLocally();
+                Hax2.Log1("Local player not found.");
+                return;
+            }
+
+            Vector3 spawnPosition = player.transform.position;
+            GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
+            if (itemToSpawn == null)
+            {
+                Hax2.Log1("Item to spawn is null. Check AssetManager.instance.surplusValuableSmall.");
+                return;
+            }
+            string path = "Valuables/";
+            GameObject spawnedItem = null; // Declarar uma única vez aqui
+
+            if (PhotonNetwork.IsConnected)
+            {
+                // Multiplayer: Spawn via Photon com dados de posição
+                object[] instantiationData = new object[] { spawnPosition };
+                spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity, 0, instantiationData);
+                Hax2.Log1("Item spawned via Photon at: " + spawnPosition + ", Name: " + spawnedItem.name);
+
+                // Forçar posição inicial imediatamente
+                spawnedItem.transform.position = spawnPosition;
+                Hax2.Log1("Forced initial position to: " + spawnedItem.transform.position + " for " + spawnedItem.name);
+
+                // Garantir visibilidade
+                EnsureItemVisibility(spawnedItem);
+
+                // Sincronizar física
+                Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.isKinematic = true;
+                    Hax2.Log1("Item set as kinematic at: " + spawnPosition + " for initial sync.");
+
+                    var syncComponent = spawnedItem.AddComponent<PhotonItemSync>();
+                    syncComponent.Initialize(rb, PhotonNetwork.IsMasterClient, spawnPosition);
+                }
+            }
+            else
+            {
+                // Singleplayer: Spawn local
+                var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
+                if (debugAxelType != null)
+                {
+                    var debugAxelInstance = GameHelper.FindObjectOfType(debugAxelType);
+                    if (debugAxelInstance != null)
+                    {
+                        var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (spawnObjectMethod != null)
+                        {
+                            spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
+                            Hax2.Log1("Item spawned locally via DebugAxel at: " + spawnPosition);
+                            spawnedItem = GameObject.Find(itemToSpawn.name + "(Clone)");
+                            if (spawnedItem != null)
+                            {
+                                EnsureItemVisibility(spawnedItem);
+                            }
+                            return;
+                        }
+                        else
+                        {
+                            Hax2.Log1("SpawnObject method not found in DebugAxel. Falling back to Instantiate.");
+                        }
+                    }
+                    else
+                    {
+                        Hax2.Log1("DebugAxel instance not found. Falling back to Instantiate.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1("DebugAxel type not found. Falling back to Instantiate.");
+                }
+
+                spawnedItem = UnityEngine.Object.Instantiate(itemToSpawn, spawnPosition, Quaternion.identity);
+                Hax2.Log1("Item spawned locally via Instantiate at: " + spawnPosition + ", Name: " + spawnedItem.name);
+                EnsureItemVisibility(spawnedItem);
             }
         }
+
+        private static void EnsureItemVisibility(GameObject item)
+        {
+            if (item == null)
+            {
+                Hax2.Log1("Item is null, cannot ensure visibility.");
+                return;
+            }
+
+            item.SetActive(true);
+            Hax2.Log1("Item active state: " + item.activeSelf + " for " + item.name);
+
+            var renderers = item.GetComponentsInChildren<Renderer>(true);
+            Hax2.Log1("Found " + renderers.Length + " renderers in item: " + item.name);
+            foreach (var renderer in renderers)
+            {
+                renderer.enabled = true;
+                Hax2.Log1("Renderer " + renderer.GetType().Name + " enabled: " + renderer.enabled + " for " + item.name);
+            }
+
+            item.layer = LayerMask.NameToLayer("Default");
+            Hax2.Log1("Item layer set to: " + LayerMask.LayerToName(item.layer) + " for " + item.name);
+        }
+
+        public class PhotonItemSync : MonoBehaviour
+        {
+            private Rigidbody rb;
+            private float delay = 0.5f;
+            private bool isMasterClient;
+            private Vector3 initialPosition;
+
+            public void Initialize(Rigidbody rigidbody, bool masterClient, Vector3 spawnPosition)
+            {
+                rb = rigidbody;
+                isMasterClient = masterClient;
+                initialPosition = spawnPosition;
+            }
+
+            private void Update()
+            {
+                if (rb == null) return;
+
+                // Forçar posição inicial até o delay acabar
+                transform.position = initialPosition;
+
+                delay -= Time.deltaTime;
+                if (delay <= 0)
+                {
+                    if (isMasterClient)
+                    {
+                        rb.isKinematic = false;
+                        Hax2.Log1("Master Client enabled physics for item: " + gameObject.name + " at: " + transform.position);
+                    }
+                    else
+                    {
+                        rb.isKinematic = false;
+                        Hax2.Log1("Client enabled physics for item after sync: " + gameObject.name + " at: " + transform.position);
+                    }
+                    Destroy(this);
+                }
+            }
+        }
+
         private static GameObject GetLocalPlayer()
         {
-            var players = SemiFunc.PlayerGetList();
-            if (players != null)
+            if (PhotonNetwork.IsConnected)
             {
-                foreach (var player in players)
+                // Multiplayer: Usar Photon
+                var players = SemiFunc.PlayerGetList();
+                if (players != null)
                 {
-                    var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (photonViewField != null)
+                    foreach (var player in players)
                     {
-                        var photonView = photonViewField.GetValue(player) as PhotonView;
-                        if (photonView != null && photonView.IsMine) 
+                        var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (photonViewField != null)
                         {
-                            var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
-                            if (gameObjectProperty != null)
+                            var photonView = photonViewField.GetValue(player) as PhotonView;
+                            if (photonView != null && photonView.IsMine)
                             {
-                                return gameObjectProperty.GetValue(player) as GameObject;
+                                var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
+                                if (gameObjectProperty != null)
+                                {
+                                    Hax2.Log1("Local player found via Photon: " + (gameObjectProperty.GetValue(player) as GameObject).name);
+                                    return gameObjectProperty.GetValue(player) as GameObject;
+                                }
+                                Hax2.Log1("Local player found via PhotonView: " + photonView.gameObject.name);
+                                return photonView.gameObject;
                             }
+                        }
+                    }
+                }
+
+                if (PhotonNetwork.LocalPlayer != null)
+                {
+                    foreach (var photonView in UnityEngine.Object.FindObjectsOfType<PhotonView>())
+                    {
+                        if (photonView.Owner == PhotonNetwork.LocalPlayer && photonView.IsMine)
+                        {
+                            Hax2.Log1("Local player found via Photon fallback: " + photonView.gameObject.name);
                             return photonView.gameObject;
                         }
                     }
                 }
             }
-
-            if (PhotonNetwork.LocalPlayer != null)
+            else
             {
-                foreach (var photonView in UnityEngine.Object.FindObjectsOfType<PhotonView>())
+                // Singleplayer: Tentar encontrar o jogador sem Photon
+                var players = SemiFunc.PlayerGetList();
+                if (players != null && players.Count > 0)
                 {
-                    if (photonView.Owner == PhotonNetwork.LocalPlayer && photonView.IsMine)
+                    var player = players[0]; // Primeiro jogador no singleplayer
+                    var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
+                    if (gameObjectProperty != null)
                     {
-                        return photonView.gameObject;
+                        var localPlayer = gameObjectProperty.GetValue(player) as GameObject;
+                        Hax2.Log1("Local player found in singleplayer via PlayerGetList: " + localPlayer.name);
+                        return localPlayer;
                     }
                 }
+
+                // Fallback robusto: Procurar PlayerAvatar ou qualquer objeto com tag "Player"
+                var playerAvatarType = Type.GetType("PlayerAvatar, Assembly-CSharp");
+                if (playerAvatarType != null)
+                {
+                    var playerAvatar = GameHelper.FindObjectOfType(playerAvatarType) as MonoBehaviour;
+                    if (playerAvatar != null)
+                    {
+                        Hax2.Log1("Local player found in singleplayer via PlayerAvatar: " + playerAvatar.gameObject.name);
+                        return playerAvatar.gameObject;
+                    }
+                }
+
+                // Último recurso: Procurar por tag "Player"
+                var playerByTag = GameObject.FindWithTag("Player");
+                if (playerByTag != null)
+                {
+                    Hax2.Log1("Local player found in singleplayer via tag 'Player': " + playerByTag.name);
+                    return playerByTag;
+                }
+
+                Hax2.Log1("Nenhum jogador local encontrado no singleplayer!");
+                return null;
             }
 
             Hax2.Log1("Nenhum jogador local encontrado!");
-            return null; 
+            return null;
         }
+
 
         public static void UpdateEnemyList()
         {
@@ -268,7 +404,7 @@ namespace r.e.p.o_cheat
                                         var enemyInstance = enemyInstanceField.GetValue(enemy) as Enemy;
                                         if (enemyInstance != null && enemyInstance.gameObject != null && enemyInstance.gameObject.activeInHierarchy)
                                         {
-                                            enemyList.Add(enemyInstance); // Armazenar diretamente o Enemy
+                                            enemyList.Add(enemyInstance);
                                         }
                                     }
                                 }
@@ -339,16 +475,14 @@ namespace r.e.p.o_cheat
                 scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
 
-            // ESP de inimigos com altura dinâmica para nomes longos
             if (drawEspBool)
             {
-                // Estilo para o nome do inimigo
                 GUIStyle enemyStyle = new GUIStyle(GUI.skin.label)
                 {
                     alignment = TextAnchor.MiddleCenter,
-                    wordWrap = true, // Permitir quebra de linha
+                    wordWrap = true,
                     fontSize = 12,
-                    fontStyle = FontStyle.Bold // Opcional, para consistência
+                    fontStyle = FontStyle.Bold 
                 };
 
                 foreach (var enemyInstance in enemyList)
@@ -382,8 +516,8 @@ namespace r.e.p.o_cheat
 
                         Box(x, y, width, height, texture2, 1f);
 
-                        float labelWidth = 100f; // Largura fixa da label
-                        float labelX = x - labelWidth / 2f; // Centro da caixa
+                        float labelWidth = 100f; 
+                        float labelX = x - labelWidth / 2f;
 
                         var enemyParent = enemyInstance.GetComponentInParent(Type.GetType("EnemyParent, Assembly-CSharp"));
                         string enemyName = "Enemy";
@@ -401,16 +535,14 @@ namespace r.e.p.o_cheat
                         }
                         string fullText = enemyName + distanceText;
 
-                        // Calcular altura dinâmica baseada no texto
                         float labelHeight = enemyStyle.CalcHeight(new GUIContent(fullText), labelWidth);
-                        float labelY = y - height - labelHeight; // Posicionar acima da caixa com altura dinâmica
+                        float labelY = y - height - labelHeight; 
 
                         GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight), fullText, enemyStyle);
                     }
                 }
             }
 
-            // ESP de itens (mantido como na última versão)
             if (drawItemEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)

@@ -365,6 +365,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cheats\PlayerCheatSync.cs" />
     <Compile Include="Cheats\DebugCheats.cs" />
     <Compile Include="Cheats\GameHelper.cs" />
     <Compile Include="Cheats\Health_Player.cs" />
