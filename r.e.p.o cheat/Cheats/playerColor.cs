@@ -12,7 +12,7 @@ namespace r.e.p.o_cheat
         private static float changeInterval = 0.1f;
 
         private static Type colorControllerType;
-        private static object colorControllerInstance; // Deve ser único por cliente
+        private static object colorControllerInstance;
         private static MethodInfo playerSetColorMethod;
         private static bool isInitialized = false;
 
@@ -29,13 +29,13 @@ namespace r.e.p.o_cheat
 
             Hax2.Log1("colorControllerType (PlayerAvatar) found.");
 
-            // Procurar o PlayerAvatar do jogador local
+
             colorControllerInstance = null;
             var photonViews = UnityEngine.Object.FindObjectsOfType<PhotonView>();
             Hax2.Log1($"Found {photonViews.Length} PhotonViews in scene.");
             foreach (var photonView in photonViews)
             {
-                if (photonView != null && photonView.IsMine) // Apenas o jogador local
+                if (photonView != null && photonView.IsMine)
                 {
                     var playerAvatar = photonView.gameObject.GetComponent(colorControllerType);
                     if (playerAvatar != null)
@@ -53,7 +53,6 @@ namespace r.e.p.o_cheat
                 return;
             }
 
-            // Buscar o método PlayerAvatarSetColor
             playerSetColorMethod = colorControllerType.GetMethod("PlayerAvatarSetColor", BindingFlags.Public | BindingFlags.Instance);
             if (playerSetColorMethod == null)
             {
