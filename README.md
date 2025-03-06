@@ -8,23 +8,25 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Heal Player<br />
 - Damage Player<br />
 - Infinite Health<br />
-- God Mode<br />
+- Infinity Stamina<br />
 - Revive Selected Player<br />
+- Kill Selected Player<br />
+- God Mode<br />
+- Send Selected Player To Void (not working yet)<br />
+- Kill ALl Enemies<br />
 - Spawn MoneyBag<br />
-- Change Speed
-- Enemy Esp
-- Infinity Stamina
-- Send Selected Player To Void (not working yet)
-- Kill ALl Enemies
-- Kill Selected Player
+- Change Speed <br />
+- Enemy Esp<br />
+- Item Esp<br />
+- RGB Player Skin
+
+
 - Player RGB Skin<br /> (contribution from https://github.com/svind1er)
 
 # **TO-DO:**
 
-- Item ESP <br />
 - Player ESP<br />
 - Player Nickname<br />
-- Player RGB Skin<br />
 - Change Damage<br />
 - Change Jump Speed<br />
 - Change Jump Delay<br />
