@@ -105,7 +105,6 @@ namespace r.e.p.o_cheat
         }
 
 
-        // Componente para sincronizar física (mantido)
 
         public static void SpawnItemLocally(Vector3 spawnPosition)
         {
@@ -158,36 +157,44 @@ namespace r.e.p.o_cheat
                 return;
             }
             string path = "Valuables/";
-            GameObject spawnedItem = null; // Declarar uma única vez aqui
+            GameObject spawnedItem = null;
 
             if (PhotonNetwork.IsConnected)
             {
-                // Multiplayer: Spawn via Photon com dados de posição
                 object[] instantiationData = new object[] { spawnPosition };
                 spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity, 0, instantiationData);
                 Hax2.Log1("Item spawned via Photon at: " + spawnPosition + ", Name: " + spawnedItem.name);
 
-                // Forçar posição inicial imediatamente
                 spawnedItem.transform.position = spawnPosition;
                 Hax2.Log1("Forced initial position to: " + spawnedItem.transform.position + " for " + spawnedItem.name);
 
-                // Garantir visibilidade
                 EnsureItemVisibility(spawnedItem);
 
-                // Sincronizar física
                 Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
+                PhotonView photonView = spawnedItem.GetComponent<PhotonView>();
+                if (photonView == null)
+                {
+                    Hax2.Log1("PhotonView not found on spawned item!");
+                    return;
+                }
+
                 if (rb != null)
                 {
                     rb.isKinematic = true;
                     Hax2.Log1("Item set as kinematic at: " + spawnPosition + " for initial sync.");
 
                     var syncComponent = spawnedItem.AddComponent<PhotonItemSync>();
-                    syncComponent.Initialize(rb, PhotonNetwork.IsMasterClient, spawnPosition);
+                    syncComponent.Initialize(rb, PhotonNetwork.IsMasterClient, spawnPosition, photonView);
+
+                    if (PhotonNetwork.IsMasterClient)
+                    {
+                        photonView.RPC("SyncItemPosition", RpcTarget.All, spawnPosition);
+                        Hax2.Log1("Master Client sent SyncItemPosition RPC with position: " + spawnPosition);
+                    }
                 }
             }
             else
             {
-                // Singleplayer: Spawn local
                 var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
                 if (debugAxelType != null)
                 {
@@ -226,6 +233,7 @@ namespace r.e.p.o_cheat
                 EnsureItemVisibility(spawnedItem);
             }
         }
+
         private static void EnsureItemVisibility(GameObject item)
         {
             if (item == null)
@@ -252,23 +260,47 @@ namespace r.e.p.o_cheat
         public class PhotonItemSync : MonoBehaviour
         {
             private Rigidbody rb;
-            private float delay = 0.5f;
+            private float delay = 2.0f; 
             private bool isMasterClient;
             private Vector3 initialPosition;
+            private PhotonView photonView;
+            private bool positionSynced = false;
 
-            public void Initialize(Rigidbody rigidbody, bool masterClient, Vector3 spawnPosition)
+            public void Initialize(Rigidbody rigidbody, bool masterClient, Vector3 spawnPosition, PhotonView pv)
             {
                 rb = rigidbody;
                 isMasterClient = masterClient;
                 initialPosition = spawnPosition;
+                photonView = pv;
+
+                if (photonView != null && photonView.InstantiationData != null && photonView.InstantiationData.Length > 0)
+                {
+                    initialPosition = (Vector3)photonView.InstantiationData[0];
+                    Hax2.Log1("Received instantiation data with position: " + initialPosition + " for " + gameObject.name);
+                }
+                else
+                {
+                    Hax2.Log1("No instantiation data received, using fallback position: " + initialPosition + " for " + gameObject.name);
+                }
+            }
+
+            [PunRPC]
+            private void SyncItemPosition(Vector3 position)
+            {
+                transform.position = position;
+                initialPosition = position;
+                Hax2.Log1("Received SyncItemPosition RPC, set position to: " + position + " for " + gameObject.name);
             }
 
             private void Update()
             {
-                if (rb == null) return;
+                if (rb == null || photonView == null) return;
 
-                // Forçar posição inicial até o delay acabar
-                transform.position = initialPosition;
+                if (!positionSynced)
+                {
+                    transform.position = initialPosition;
+                    Hax2.Log1("Maintaining position at: " + transform.position + " until synced for " + gameObject.name);
+                }
 
                 delay -= Time.deltaTime;
                 if (delay <= 0)
@@ -276,14 +308,34 @@ namespace r.e.p.o_cheat
                     if (isMasterClient)
                     {
                         rb.isKinematic = false;
+                        transform.position = initialPosition;
                         Hax2.Log1("Master Client enabled physics for item: " + gameObject.name + " at: " + transform.position);
+                        positionSynced = true;
                     }
                     else
                     {
-                        rb.isKinematic = false;
-                        Hax2.Log1("Client enabled physics for item after sync: " + gameObject.name + " at: " + transform.position);
+                        Vector3 networkedPosition = transform.position;
+                        if (Vector3.Distance(networkedPosition, initialPosition) < 0.5f) 
+                        {
+                            rb.isKinematic = false;
+                            Hax2.Log1("Client confirmed sync and enabled physics for item: " + gameObject.name + " at: " + transform.position);
+                            positionSynced = true;
+                        }
+                        else
+                        {
+                            Hax2.Log1("Client position not synced yet: Expected " + initialPosition + ", Got " + networkedPosition + " for " + gameObject.name);
+                        }
                     }
-                    Destroy(this);
+
+                    if (positionSynced)
+                    {
+                        Destroy(this);
+                    }
+                }
+
+                if (positionSynced && Vector3.Distance(transform.position, Vector3.zero) < 0.1f)
+                {
+                    Hax2.Log1("Item reset to (0, 0, 0) after sync for " + gameObject.name);
                 }
             }
         }
@@ -292,7 +344,7 @@ namespace r.e.p.o_cheat
         {
             if (PhotonNetwork.IsConnected)
             {
-                // Multiplayer: Usar Photon
+
                 var players = SemiFunc.PlayerGetList();
                 if (players != null)
                 {
@@ -331,11 +383,11 @@ namespace r.e.p.o_cheat
             }
             else
             {
-                // Singleplayer: Tentar encontrar o jogador sem Photon
+
                 var players = SemiFunc.PlayerGetList();
                 if (players != null && players.Count > 0)
                 {
-                    var player = players[0]; // Primeiro jogador no singleplayer
+                    var player = players[0]; 
                     var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
                     if (gameObjectProperty != null)
                     {
@@ -345,7 +397,6 @@ namespace r.e.p.o_cheat
                     }
                 }
 
-                // Fallback robusto: Procurar PlayerAvatar ou qualquer objeto com tag "Player"
                 var playerAvatarType = Type.GetType("PlayerAvatar, Assembly-CSharp");
                 if (playerAvatarType != null)
                 {
@@ -357,7 +408,6 @@ namespace r.e.p.o_cheat
                     }
                 }
 
-                // Último recurso: Procurar por tag "Player"
                 var playerByTag = GameObject.FindWithTag("Player");
                 if (playerByTag != null)
                 {
