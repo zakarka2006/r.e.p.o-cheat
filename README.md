@@ -4,11 +4,11 @@ WARNING: THIS IS A OPEN-SOURCE PROJECT! ITS NOT INTENDED TO BE SOLD OR TO BE THE
 
 Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 
-![Screenshot_3](https://github.com/user-attachments/assets/565a1f32-cd7b-485c-9711-903bdc7f9959)
+![Screenshot_2](https://github.com/user-attachments/assets/5ad9531f-5bef-411a-853c-e1dfbfb80f6b)
 
 # **FUNCTIONS (still working on, i will release new versions whenever i add functions):**
-- Heal Player<br />
-- Damage Player<br />
+- Heal  Any Player<br />
+- Damage Any Player<br />
 - Infinite Health<br />
 - Infinity Stamina<br />
 - Revive Selected Player<br />
