@@ -1,5 +1,5 @@
 # r.e.p.o-cheat
-made by D4rkks (and community)!)<br />
+made by D4rkks (and community) (second repo bc first one i fucked up) <br />
 WARNING: THIS IS A OPEN-SOURCE PROJECT! ITS NOT INTENDED TO BE SOLD OR TO BE THE ULTIMATE LAST R.E.P.O CHEAT, EVERYONE CAN USE IT AND FEEL FREE TO CONTRIBUTE!<br />
 
 Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
