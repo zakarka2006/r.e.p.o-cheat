@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using Photon.Pun;
+using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 
@@ -9,17 +10,16 @@ namespace r.e.p.o_cheat
     static class DebugCheats
     {
         private static int frameCounter = 0;
-        public static bool drawEspBool = false; 
+        public static bool drawEspBool = false;
         public static bool drawItemEspBool = false;
         private static List<Enemy> enemyList = new List<Enemy>();
-        private static List<object> valuableObjects = new List<object>(); 
+        private static List<object> valuableObjects = new List<object>();
         private static Camera cachedCamera;
         private static float scaleX, scaleY;
         public static Texture2D texture2;
         private static float lastUpdateTime = 0f;
-        private const float updateInterval = 0.5f; 
-        private static GameObject localPlayer; 
-
+        private const float updateInterval = 0.5f;
+        private static GameObject localPlayer;
 
         static DebugCheats()
         {
@@ -30,7 +30,7 @@ namespace r.e.p.o_cheat
                 scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
             UpdateLists();
-            UpdateLocalPlayer(); 
+            UpdateLocalPlayer();
         }
         private static void UpdateLists()
         {
@@ -79,7 +79,6 @@ namespace r.e.p.o_cheat
             lastUpdateTime = Time.time;
             Hax2.Log1($"Listas atualizadas: {enemyList.Count} inimigos, {valuableObjects.Count} itens.");
         }
-
         private static void UpdateLocalPlayer()
         {
             var players = SemiFunc.PlayerGetList();
@@ -103,8 +102,6 @@ namespace r.e.p.o_cheat
             }
             Hax2.Log1("Nenhum jogador local encontrado para atualizar.");
         }
-
-
 
         public static void SpawnItemLocally(Vector3 spawnPosition)
         {
@@ -140,6 +137,7 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("DebugAxel type not found.");
             }
         }
+
         public static void SpawnItem()
         {
             GameObject player = GetLocalPlayer();
@@ -149,7 +147,7 @@ namespace r.e.p.o_cheat
                 return;
             }
 
-            Vector3 spawnPosition = player.transform.position;
+            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f; // Aumentado para evitar colisão
             GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
             if (itemToSpawn == null)
             {
@@ -165,36 +163,69 @@ namespace r.e.p.o_cheat
                 spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity, 0, instantiationData);
                 Hax2.Log1("Item spawned via Photon at: " + spawnPosition + ", Name: " + spawnedItem.name);
 
-                spawnedItem.transform.position = spawnPosition;
-                Hax2.Log1("Forced initial position to: " + spawnedItem.transform.position + " for " + spawnedItem.name);
-
                 EnsureItemVisibility(spawnedItem);
 
-                Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
                 PhotonView photonView = spawnedItem.GetComponent<PhotonView>();
                 if (photonView == null)
                 {
-                    Hax2.Log1("PhotonView not found on spawned item!");
-                    return;
+                    Hax2.Log1("PhotonView not found on spawned item! Adding one.");
+                    photonView = spawnedItem.AddComponent<PhotonView>();
+                    photonView.ViewID = PhotonNetwork.AllocateViewID(0);
+                    photonView.OwnershipTransfer = OwnershipOption.Takeover;
                 }
 
+                Hax2.Log1("PhotonView Owner: " + photonView.Owner?.NickName + ", IsMine: " + photonView.IsMine + ", ViewID: " + photonView.ViewID);
+
+                // Adicionar PhotonTransformView para posição e rotação
+                PhotonTransformView transformView = spawnedItem.GetComponent<PhotonTransformView>();
+                if (transformView == null)
+                {
+                    transformView = spawnedItem.AddComponent<PhotonTransformView>();
+                    Hax2.Log1("Added PhotonTransformView to " + spawnedItem.name + " for position/rotation sync.");
+                }
+
+                // Adicionar PhotonRigidbodyView para física
+                PhotonRigidbodyView rigidbodyView = spawnedItem.GetComponent<PhotonRigidbodyView>();
+                if (rigidbodyView == null)
+                {
+                    rigidbodyView = spawnedItem.AddComponent<PhotonRigidbodyView>();
+                    Hax2.Log1("Added PhotonRigidbodyView to " + spawnedItem.name + " for physics sync.");
+                }
+
+                // Garantir que PhotonView observe ambos os componentes
+                photonView.ObservedComponents = new List<Component> { transformView, rigidbodyView };
+
+                // Forçar propriedade para o Master Client
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    photonView.TransferOwnership(PhotonNetwork.LocalPlayer);
+                    Hax2.Log1("Master Client took ownership of " + spawnedItem.name);
+                }
+
+                Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    rb.isKinematic = true;
-                    Hax2.Log1("Item set as kinematic at: " + spawnPosition + " for initial sync.");
-
-                    var syncComponent = spawnedItem.AddComponent<PhotonItemSync>();
-                    syncComponent.Initialize(rb, PhotonNetwork.IsMasterClient, spawnPosition, photonView);
-
+                    rb.position = spawnPosition; // Forçar posição inicial
+                    rb.isKinematic = false; // Física ativa desde o início em todos os clientes
                     if (PhotonNetwork.IsMasterClient)
                     {
-                        photonView.RPC("SyncItemPosition", RpcTarget.All, spawnPosition);
-                        Hax2.Log1("Master Client sent SyncItemPosition RPC with position: " + spawnPosition);
+                        Hax2.Log1("Master Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
+                    }
+                    else
+                    {
+                        Hax2.Log1("Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
                     }
                 }
+                else
+                {
+                    Hax2.Log1("No Rigidbody found on item, relying on PhotonTransformView only.");
+                }
+
+                Hax2.Log1("PhotonView Observed Components: " + string.Join(", ", photonView.ObservedComponents.Select(c => c.GetType().Name)));
             }
             else
             {
+                // Singleplayer: Spawn local
                 var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
                 if (debugAxelType != null)
                 {
@@ -213,19 +244,7 @@ namespace r.e.p.o_cheat
                             }
                             return;
                         }
-                        else
-                        {
-                            Hax2.Log1("SpawnObject method not found in DebugAxel. Falling back to Instantiate.");
-                        }
                     }
-                    else
-                    {
-                        Hax2.Log1("DebugAxel instance not found. Falling back to Instantiate.");
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("DebugAxel type not found. Falling back to Instantiate.");
                 }
 
                 spawnedItem = UnityEngine.Object.Instantiate(itemToSpawn, spawnPosition, Quaternion.identity);
@@ -255,87 +274,15 @@ namespace r.e.p.o_cheat
 
             item.layer = LayerMask.NameToLayer("Default");
             Hax2.Log1("Item layer set to: " + LayerMask.LayerToName(item.layer) + " for " + item.name);
-        }
 
-        public class PhotonItemSync : MonoBehaviour
-        {
-            private Rigidbody rb;
-            private float delay = 2.0f; 
-            private bool isMasterClient;
-            private Vector3 initialPosition;
-            private PhotonView photonView;
-            private bool positionSynced = false;
-
-            public void Initialize(Rigidbody rigidbody, bool masterClient, Vector3 spawnPosition, PhotonView pv)
+            MonoBehaviour[] scripts = item.GetComponents<MonoBehaviour>();
+            Hax2.Log1("Found " + scripts.Length + " scripts on item: " + item.name);
+            foreach (var script in scripts)
             {
-                rb = rigidbody;
-                isMasterClient = masterClient;
-                initialPosition = spawnPosition;
-                photonView = pv;
-
-                if (photonView != null && photonView.InstantiationData != null && photonView.InstantiationData.Length > 0)
+                if (script != null && script != item.GetComponent<PhotonView>() && script != item.GetComponent<PhotonTransformView>() && script != item.GetComponent<PhotonRigidbodyView>())
                 {
-                    initialPosition = (Vector3)photonView.InstantiationData[0];
-                    Hax2.Log1("Received instantiation data with position: " + initialPosition + " for " + gameObject.name);
-                }
-                else
-                {
-                    Hax2.Log1("No instantiation data received, using fallback position: " + initialPosition + " for " + gameObject.name);
-                }
-            }
-
-            [PunRPC]
-            private void SyncItemPosition(Vector3 position)
-            {
-                transform.position = position;
-                initialPosition = position;
-                Hax2.Log1("Received SyncItemPosition RPC, set position to: " + position + " for " + gameObject.name);
-            }
-
-            private void Update()
-            {
-                if (rb == null || photonView == null) return;
-
-                if (!positionSynced)
-                {
-                    transform.position = initialPosition;
-                    Hax2.Log1("Maintaining position at: " + transform.position + " until synced for " + gameObject.name);
-                }
-
-                delay -= Time.deltaTime;
-                if (delay <= 0)
-                {
-                    if (isMasterClient)
-                    {
-                        rb.isKinematic = false;
-                        transform.position = initialPosition;
-                        Hax2.Log1("Master Client enabled physics for item: " + gameObject.name + " at: " + transform.position);
-                        positionSynced = true;
-                    }
-                    else
-                    {
-                        Vector3 networkedPosition = transform.position;
-                        if (Vector3.Distance(networkedPosition, initialPosition) < 0.5f) 
-                        {
-                            rb.isKinematic = false;
-                            Hax2.Log1("Client confirmed sync and enabled physics for item: " + gameObject.name + " at: " + transform.position);
-                            positionSynced = true;
-                        }
-                        else
-                        {
-                            Hax2.Log1("Client position not synced yet: Expected " + initialPosition + ", Got " + networkedPosition + " for " + gameObject.name);
-                        }
-                    }
-
-                    if (positionSynced)
-                    {
-                        Destroy(this);
-                    }
-                }
-
-                if (positionSynced && Vector3.Distance(transform.position, Vector3.zero) < 0.1f)
-                {
-                    Hax2.Log1("Item reset to (0, 0, 0) after sync for " + gameObject.name);
+                    script.enabled = true;
+                    Hax2.Log1("Script " + script.GetType().Name + " enabled: " + script.enabled + " for " + item.name);
                 }
             }
         }
@@ -344,7 +291,6 @@ namespace r.e.p.o_cheat
         {
             if (PhotonNetwork.IsConnected)
             {
-
                 var players = SemiFunc.PlayerGetList();
                 if (players != null)
                 {
@@ -383,11 +329,10 @@ namespace r.e.p.o_cheat
             }
             else
             {
-
                 var players = SemiFunc.PlayerGetList();
                 if (players != null && players.Count > 0)
                 {
-                    var player = players[0]; 
+                    var player = players[0];
                     var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
                     if (gameObjectProperty != null)
                     {

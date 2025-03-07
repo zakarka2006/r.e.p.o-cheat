@@ -16,7 +16,7 @@ namespace r.e.p.o_cheat
         private static MethodInfo playerSetColorMethod;
         private static bool isInitialized = false;
 
-        public static void Initialize()
+        private static void Initialize()
         {
             if (isInitialized) return;
 
@@ -28,6 +28,7 @@ namespace r.e.p.o_cheat
             }
 
             Hax2.Log1("colorControllerType (PlayerAvatar) found.");
+
 
             colorControllerInstance = null;
             var photonViews = UnityEngine.Object.FindObjectsOfType<PhotonView>();
@@ -65,21 +66,27 @@ namespace r.e.p.o_cheat
 
         public static void colorRandomizer()
         {
+            Initialize();
+
             if (!isInitialized || colorControllerInstance == null || playerSetColorMethod == null)
             {
                 Hax2.Log1("Randomizer skipped: Initialization failed or instance/method missing.");
                 return;
             }
 
-            var colorIndex = new System.Random().Next(0, 30);
-            try
+            if (isRandomizing && Time.time - lastColorChangeTime >= changeInterval)
             {
-                playerSetColorMethod.Invoke(colorControllerInstance, new object[] { colorIndex });
-                Hax2.Log1($"Local player color changed to index: {colorIndex}");
-            }
-            catch (Exception e)
-            {
-                Hax2.Log1($"Error invoking PlayerAvatarSetColor: {e.Message}");
+                var colorIndex = new System.Random().Next(0, 30);
+                try
+                {
+                    playerSetColorMethod.Invoke(colorControllerInstance, new object[] { colorIndex });
+                    lastColorChangeTime = Time.time;
+                    Hax2.Log1($"Local player color changed to index: {colorIndex}");
+                }
+                catch (Exception e)
+                {
+                    Hax2.Log1($"Error invoking PlayerAvatarSetColor: {e.Message}");
+                }
             }
         }
 

@@ -167,11 +167,9 @@ namespace r.e.p.o_cheat
     {
         private float nextUpdateTime = 0f;
         private const float updateInterval = 10f;
-        private float nextColorChangeTime = 0f;
-        private const float colorChangeInterval = 0.1f; 
 
         private int selectedPlayerIndex = 0;
-        private List<string> playerNames = new List<string>();
+        private List<string> playerNames = new List<string>(); 
         private List<object> playerList = new List<object>();
         private float oldSliderValue = 0.5f;
         private float sliderValue = 0.5f;
@@ -179,6 +177,7 @@ namespace r.e.p.o_cheat
         private bool showMenu = true;
         public static bool godModeActive = false;
         public static List<DebugLogMessage> debugLogMessages = new List<DebugLogMessage>();
+
         private bool showDebugMenu = false;
 
         public void Start()
@@ -190,38 +189,35 @@ namespace r.e.p.o_cheat
             DebugCheats.texture2.SetPixel(0, 1, Color.red);
             DebugCheats.texture2.SetPixel(1, 1, Color.red);
             DebugCheats.texture2.Apply();
-
             var playerHealthType = Type.GetType("PlayerHealth, Assembly-CSharp");
             if (playerHealthType != null)
             {
-                Hax2.Log1("playerHealthType n é null");
+                Log1("playerHealthType n é null");
                 Health_Player.playerHealthInstance = FindObjectOfType(playerHealthType);
                 if (Health_Player.playerHealthInstance != null)
                 {
-                    Hax2.Log1("playerHealthInstance n é null");
+                    Log1("playerHealthInstance n é null");
                 }
                 else
                 {
-                    Hax2.Log1("playerHealthInstance null");
+                    Log1("playerHealthInstance null");
                 }
             }
             else
             {
-                Hax2.Log1("playerHealthType null");
+                Log1("playerHealthType null");
             }
 
             var playerMaxHealth = Type.GetType("ItemUpgradePlayerHealth, Assembly-CSharp");
             if (playerMaxHealth != null)
             {
                 Health_Player.playerMaxHealthInstance = FindObjectOfType(playerMaxHealth);
-                Hax2.Log1("playerMaxHealth n é null");
+                Log1("playerMaxHealth n é null");
             }
             else
             {
-                Hax2.Log1("playerMaxHealth null");
+                Log1("playerMaxHealth null");
             }
-
-            playerColor.Initialize();
         }
 
         public void Update()
@@ -239,11 +235,10 @@ namespace r.e.p.o_cheat
                 oldSliderValue = sliderValue;
             }
 
- 
-            if (playerColor.isRandomizing && Time.time >= nextColorChangeTime)
+
+            if (playerColor.isRandomizing)
             {
                 playerColor.colorRandomizer();
-                nextColorChangeTime = Time.time + colorChangeInterval;
             }
 
             if (Input.GetKeyDown(KeyCode.Delete))
@@ -296,7 +291,7 @@ namespace r.e.p.o_cheat
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
             {
-                Hax2.Log1("Índice de jogador inválido!");
+                Log1("Índice de jogador inválido!");
                 return;
             }
 
@@ -317,16 +312,16 @@ namespace r.e.p.o_cheat
                     }
 
                     reviveMethod?.Invoke(playerDeathHeadInstance, null);
-                    Hax2.Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
+                    Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
                 }
                 else
                 {
-                    Hax2.Log1("Instância de playerDeathHead não encontrada.");
+                    Log1("Instância de playerDeathHead não encontrada.");
                 }
             }
             else
             {
-                Hax2.Log1("Campo playerDeathHead não encontrado.");
+                Log1("Campo playerDeathHead não encontrado.");
             }
         }
 
@@ -334,46 +329,46 @@ namespace r.e.p.o_cheat
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
             {
-                Hax2.Log1("Índice de jogador inválido!");
+                Log1("Índice de jogador inválido!");
                 return;
             }
 
             var selectedPlayer = playerList[selectedPlayerIndex];
             if (selectedPlayer == null)
             {
-                Hax2.Log1("Jogador selecionado é nulo!");
+                Log1("Jogador selecionado é nulo!");
                 return;
             }
 
             try
             {
-                Hax2.Log1($"Tentando matar: {playerNames[selectedPlayerIndex]} | MasterClient: {PhotonNetwork.IsMasterClient}");
+                Log1($"Tentando matar: {playerNames[selectedPlayerIndex]} | MasterClient: {PhotonNetwork.IsMasterClient}");
 
                 var photonViewField = selectedPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (photonViewField == null)
                 {
-                    Hax2.Log1("PhotonViewField não encontrado!");
+                    Log1("PhotonViewField não encontrado!");
                     return;
                 }
 
                 var photonViewValue = photonViewField.GetValue(selectedPlayer);
                 if (!(photonViewValue is PhotonView photonView))
                 {
-                    Hax2.Log1("PhotonView não é válido!");
+                    Log1("PhotonView não é válido!");
                     return;
                 }
 
                 var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (playerHealthField == null)
                 {
-                    Hax2.Log1("Campo 'playerHealth' não encontrado!");
+                    Log1("Campo 'playerHealth' não encontrado!");
                     return;
                 }
 
                 var playerHealthInstance = playerHealthField.GetValue(selectedPlayer);
                 if (playerHealthInstance == null)
                 {
-                    Hax2.Log1("Instância de playerHealth é nula!");
+                    Log1("Instância de playerHealth é nula!");
                     return;
                 }
 
@@ -382,12 +377,12 @@ namespace r.e.p.o_cheat
                 var deathMethod = healthType.GetMethod("Death", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (deathMethod == null)
                 {
-                    Hax2.Log1("Método 'Death' não encontrado!");
+                    Log1("Método 'Death' não encontrado!");
                     return;
                 }
 
                 deathMethod.Invoke(playerHealthInstance, null);
-                Hax2.Log1($"Método 'Death' chamado localmente para {playerNames[selectedPlayerIndex]}.");
+                Log1($"Método 'Death' chamado localmente para {playerNames[selectedPlayerIndex]}.");
 
                 var playerAvatarField = healthType.GetField("playerAvatar", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (playerAvatarField != null)
@@ -400,21 +395,21 @@ namespace r.e.p.o_cheat
                         if (playerDeathMethod != null)
                         {
                             playerDeathMethod.Invoke(playerAvatarInstance, new object[] { -1 });
-                            Hax2.Log1($"Método 'PlayerDeath' chamado localmente para {playerNames[selectedPlayerIndex]}.");
+                            Log1($"Método 'PlayerDeath' chamado localmente para {playerNames[selectedPlayerIndex]}.");
                         }
                         else
                         {
-                            Hax2.Log1("Método 'PlayerDeath' não encontrado em PlayerAvatar!");
+                            Log1("Método 'PlayerDeath' não encontrado em PlayerAvatar!");
                         }
                     }
                     else
                     {
-                        Hax2.Log1("Instância de PlayerAvatar é nula!");
+                        Log1("Instância de PlayerAvatar é nula!");
                     }
                 }
                 else
                 {
-                    Hax2.Log1("Campo 'playerAvatar' não encontrado em PlayerHealth!");
+                    Log1("Campo 'playerAvatar' não encontrado em PlayerHealth!");
                 }
 
                 if (PhotonNetwork.IsConnected && photonView != null)
@@ -424,39 +419,39 @@ namespace r.e.p.o_cheat
                     if (maxHealthField != null)
                     {
                         maxHealth = (int)maxHealthField.GetValue(playerHealthInstance);
-                        Hax2.Log1($"maxHealth encontrado: {maxHealth}");
+                        Log1($"maxHealth encontrado: {maxHealth}");
                     }
                     else
                     {
-                        Hax2.Log1("Campo 'maxHealth' não encontrado, usando valor padrão: 100");
+                        Log1("Campo 'maxHealth' não encontrado, usando valor padrão: 100");
                     }
 
                     photonView.RPC("UpdateHealthRPC", RpcTarget.AllBuffered, new object[] { 0, maxHealth, true });
-                    Hax2.Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde=0, maxHealth={maxHealth}, effect=true.");
+                    Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde=0, maxHealth={maxHealth}, effect=true.");
 
                     try
                     {
                         photonView.RPC("PlayerDeathRPC", RpcTarget.AllBuffered, new object[] { -1 });
-                        Hax2.Log1("Tentando RPC 'PlayerDeathRPC' para forçar morte...");
+                        Log1("Tentando RPC 'PlayerDeathRPC' para forçar morte...");
                     }
                     catch
                     {
-                        Hax2.Log1("RPC 'PlayerDeathRPC' não registrado, tentando alternativa...");
+                        Log1("RPC 'PlayerDeathRPC' não registrado, tentando alternativa...");
                     }
 
                     photonView.RPC("HurtOtherRPC", RpcTarget.AllBuffered, new object[] { 9999, Vector3.zero, false, -1 });
-                    Hax2.Log1("RPC 'HurtOtherRPC' enviado com 9999 de dano para garantir morte.");
+                    Log1("RPC 'HurtOtherRPC' enviado com 9999 de dano para garantir morte.");
                 }
                 else
                 {
-                    Hax2.Log1("Não conectado ao Photon, morte apenas local.");
+                    Log1("Não conectado ao Photon, morte apenas local.");
                 }
 
-                Hax2.Log1($"Tentativa de matar {playerNames[selectedPlayerIndex]} concluída.");
+                Log1($"Tentativa de matar {playerNames[selectedPlayerIndex]} concluída.");
             }
             catch (Exception e)
             {
-                Hax2.Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}");
+                Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}");
             }
         }
         public void OnGUI()
@@ -510,7 +505,7 @@ namespace r.e.p.o_cheat
                     ReviveSelectedPlayer();
                     Debug.Log("Player revived: " + playerNames[selectedPlayerIndex]);
                 }
-                if (UIHelper.Button("Kill Selected Player", 170, 530))
+                if (UIHelper.Button("Kill Selected Player", 170, 530)) 
                 {
                     KillSelectedPlayer();
                     Debug.Log("Tentativa de matar o jogador selecionado realizada.");
@@ -519,7 +514,7 @@ namespace r.e.p.o_cheat
                 bool newGodModeState = UIHelper.ButtonBool("God Mode", godModeActive, 170, 580);
                 if (newGodModeState != godModeActive)
                 {
-                    PlayerController.GodMode();
+                    PlayerController.GodMode(); 
                     godModeActive = newGodModeState;
                     Debug.Log("God mode toggled: " + godModeActive);
                 }
@@ -545,7 +540,7 @@ namespace r.e.p.o_cheat
                 sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 170, 800);
 
                 DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 170, 820);
-                DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 170, 850);
+                DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 170, 850); 
 
                 bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 880);
                 if (newPlayerColorState != playerColor.isRandomizing)
