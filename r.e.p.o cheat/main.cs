@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-//made by dark.dev (Gustavo Lass)
 namespace r.e.p.o_cheat
 {
 

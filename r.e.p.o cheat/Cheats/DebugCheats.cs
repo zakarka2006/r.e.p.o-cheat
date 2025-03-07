@@ -147,7 +147,7 @@ namespace r.e.p.o_cheat
                 return;
             }
 
-            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f;
+            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f; // Aumentado para evitar colisão
             GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
             if (itemToSpawn == null)
             {
@@ -176,6 +176,7 @@ namespace r.e.p.o_cheat
 
                 Hax2.Log1("PhotonView Owner: " + photonView.Owner?.NickName + ", IsMine: " + photonView.IsMine + ", ViewID: " + photonView.ViewID);
 
+                // Adicionar PhotonTransformView para posição e rotação
                 PhotonTransformView transformView = spawnedItem.GetComponent<PhotonTransformView>();
                 if (transformView == null)
                 {
@@ -183,6 +184,7 @@ namespace r.e.p.o_cheat
                     Hax2.Log1("Added PhotonTransformView to " + spawnedItem.name + " for position/rotation sync.");
                 }
 
+                // Adicionar PhotonRigidbodyView para física
                 PhotonRigidbodyView rigidbodyView = spawnedItem.GetComponent<PhotonRigidbodyView>();
                 if (rigidbodyView == null)
                 {
@@ -190,8 +192,10 @@ namespace r.e.p.o_cheat
                     Hax2.Log1("Added PhotonRigidbodyView to " + spawnedItem.name + " for physics sync.");
                 }
 
+                // Garantir que PhotonView observe ambos os componentes
                 photonView.ObservedComponents = new List<Component> { transformView, rigidbodyView };
 
+                // Forçar propriedade para o Master Client
                 if (PhotonNetwork.IsMasterClient)
                 {
                     photonView.TransferOwnership(PhotonNetwork.LocalPlayer);
@@ -201,8 +205,8 @@ namespace r.e.p.o_cheat
                 Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    rb.position = spawnPosition; 
-                    rb.isKinematic = false; 
+                    rb.position = spawnPosition; // Forçar posição inicial
+                    rb.isKinematic = false; // Física ativa desde o início em todos os clientes
                     if (PhotonNetwork.IsMasterClient)
                     {
                         Hax2.Log1("Master Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
@@ -221,6 +225,7 @@ namespace r.e.p.o_cheat
             }
             else
             {
+                // Singleplayer: Spawn local
                 var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
                 if (debugAxelType != null)
                 {
@@ -452,7 +457,8 @@ namespace r.e.p.o_cheat
             frameCounter++;
             if (frameCounter % 2 != 0) return;
 
-            if (cachedCamera == null)
+            // Verificar e atualizar a câmera principal
+            if (cachedCamera == null || cachedCamera != Camera.main)
             {
                 cachedCamera = Camera.main;
                 if (cachedCamera == null)
@@ -460,9 +466,11 @@ namespace r.e.p.o_cheat
                     Hax2.Log1("Camera.main não encontrada!");
                     return;
                 }
-                scaleX = (float)Screen.width / cachedCamera.pixelWidth;
-                scaleY = (float)Screen.height / cachedCamera.pixelHeight;
             }
+
+            // Recalcular scaleX e scaleY a cada frame para lidar com mudanças de resolução
+            scaleX = (float)Screen.width / cachedCamera.pixelWidth;
+            scaleY = (float)Screen.height / cachedCamera.pixelHeight;
 
             if (drawEspBool)
             {
@@ -471,7 +479,7 @@ namespace r.e.p.o_cheat
                     alignment = TextAnchor.MiddleCenter,
                     wordWrap = true,
                     fontSize = 12,
-                    fontStyle = FontStyle.Bold 
+                    fontStyle = FontStyle.Bold
                 };
 
                 foreach (var enemyInstance in enemyList)
@@ -505,7 +513,7 @@ namespace r.e.p.o_cheat
 
                         Box(x, y, width, height, texture2, 1f);
 
-                        float labelWidth = 100f; 
+                        float labelWidth = 100f;
                         float labelX = x - labelWidth / 2f;
 
                         var enemyParent = enemyInstance.GetComponentInParent(Type.GetType("EnemyParent, Assembly-CSharp"));
@@ -525,7 +533,7 @@ namespace r.e.p.o_cheat
                         string fullText = enemyName + distanceText;
 
                         float labelHeight = enemyStyle.CalcHeight(new GUIContent(fullText), labelWidth);
-                        float labelY = y - height - labelHeight; 
+                        float labelY = y - height - labelHeight;
 
                         GUI.Label(new Rect(labelX, labelY, labelWidth, labelHeight), fullText, enemyStyle);
                     }
@@ -534,6 +542,7 @@ namespace r.e.p.o_cheat
 
             if (drawItemEspBool)
             {
+                // [O resto do código para itens permanece igual, apenas use scaleX e scaleY atualizados]
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
                 {
                     normal = { textColor = Color.yellow },
