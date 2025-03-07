@@ -11,7 +11,7 @@ namespace r.e.p.o_cheat
     public static class UIHelper
     {
         private static float x, y, width, height, margin, controlHeight, controlDist, nextControlY;
-        private static int columns = 3;
+        private static int columns = 1; // Reduzido para 1 por padrão para evitar desorganização
         private static int currentColumn = 0;
         private static int currentRow = 0;
 
@@ -26,73 +26,48 @@ namespace r.e.p.o_cheat
         {
             Rect rect = NextControlRect(customX, customY);
             string displayText = $"{text} {(value ? "✔" : " ")}";
-
-            GUIStyle style = new GUIStyle(GUI.skin.button);
-            style.alignment = TextAnchor.MiddleCenter;
-            style.normal.textColor = value ? Color.green : Color.red; 
-
-            if (GUI.Button(rect, displayText, style))
-            {
-                value = !value;
-            }
-
-            return value;
+            GUIStyle style = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleCenter, normal = { textColor = value ? Color.green : Color.red } };
+            return GUI.Button(rect, displayText, style) ? !value : value;
         }
+
         public static bool Checkbox(string text, bool value, float? customX = null, float? customY = null)
         {
-            Rect rect = NextControlRect(customX, customY);
-            return GUI.Toggle(rect, value, text);
+            return GUI.Toggle(NextControlRect(customX, customY), value, text);
         }
+
         public static void Begin(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
         {
-            x = _x;
-            y = _y;
-            width = _width;
-            height = _height;
-            margin = _margin;
-            controlHeight = _controlHeight;
-            controlDist = _controlDist;
-            nextControlY = y + margin;
-
+            x = _x; y = _y; width = _width; height = _height; margin = _margin; controlHeight = _controlHeight; controlDist = _controlDist;
+            nextControlY = y + margin + 60; // Ajustado para dar espaço às abas
             GUI.Box(new Rect(x, y, width, height), text);
+            ResetGrid(); // Reinicia a grade ao iniciar um novo menu
         }
 
         public static void BeginDebugMenu(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
         {
-            debugX = _x;
-            debugY = _y;
-            debugWidth = _width;
-            debugHeight = _height;
-            debugMargin = _margin;
-            debugControlHeight = _controlHeight;
-            debugControlDist = _controlDist;
+            debugX = _x; debugY = _y; debugWidth = _width; debugHeight = _height; debugMargin = _margin; debugControlHeight = _controlHeight; debugControlDist = _controlDist;
             debugNextControlY = debugY + debugMargin;
-
             GUI.Box(new Rect(debugX, debugY, debugWidth, debugHeight), text);
-
-            if (debugLabelStyle == null)
-            {
-                debugLabelStyle = new GUIStyle(GUI.skin.label)
-                {
-                    wordWrap = true,
-                    clipping = TextClipping.Clip
-                };
-            }
+            if (debugLabelStyle == null) debugLabelStyle = new GUIStyle(GUI.skin.label) { wordWrap = true, clipping = TextClipping.Clip };
         }
 
         private static Rect NextControlRect(float? customX = null, float? customY = null)
         {
             float controlX = customX ?? (x + margin + currentColumn * ((width - (columns + 1) * margin) / columns));
             float controlY = customY ?? nextControlY;
+            float controlWidth = customX == null ? ((width - (columns + 1) * margin) / columns) : width - 2 * margin;
 
-            Rect rect = new Rect(controlX, controlY, ((width + 500) / columns) - 2 * margin, controlHeight);
+            Rect rect = new Rect(controlX, controlY, controlWidth, controlHeight);
 
-            currentColumn++;
-            if (currentColumn >= columns)
+            if (customX == null && customY == null) // Avança apenas se não houver coordenadas manuais
             {
-                currentColumn = 0;
-                currentRow++;
-                nextControlY += controlHeight + controlDist;
+                currentColumn++;
+                if (currentColumn >= columns)
+                {
+                    currentColumn = 0;
+                    currentRow++;
+                    nextControlY += controlHeight + controlDist;
+                }
             }
 
             return rect;
@@ -102,9 +77,7 @@ namespace r.e.p.o_cheat
         {
             float controlX = debugX + debugMargin + debugCurrentColumn * (debugWidth / debugColumns);
             float controlY = debugNextControlY + debugCurrentRow * (debugControlHeight + debugControlDist);
-
             Rect rect = new Rect(controlX, controlY, debugWidth - debugMargin * 2, debugControlHeight);
-
             debugCurrentColumn++;
             if (debugCurrentColumn >= debugColumns)
             {
@@ -112,64 +85,31 @@ namespace r.e.p.o_cheat
                 debugCurrentRow++;
                 debugNextControlY += debugControlHeight + debugControlDist;
             }
-
             return rect;
         }
 
-        public static string MakeEnable(string text, bool state)
-        {
-            return $"{text}{(state ? "ON" : "OFF")}";
-        }
-
-        public static void Label(string text, float? customX = null, float? customY = null)
-        {
-            GUI.Label(NextControlRect(customX, customY), text);
-        }
-
-        public static bool Button(string text, float? customX = null, float? customY = null)
-        {
-            return GUI.Button(NextControlRect(customX, customY), text);
-        }
-
-        public static float Slider(float val, float min, float max, float? customX = null, float? customY = null)
-        {
-            float newValue = GUI.HorizontalSlider(NextControlRect(customX, customY), val, min, max);
-            return Mathf.Round(newValue);
-        }
-
+        public static string MakeEnable(string text, bool state) => $"{text}{(state ? "ON" : "OFF")}";
+        public static void Label(string text, float? customX = null, float? customY = null) => GUI.Label(NextControlRect(customX, customY), text);
+        public static bool Button(string text, float? customX = null, float? customY = null) => GUI.Button(NextControlRect(customX, customY), text);
+        public static float Slider(float val, float min, float max, float? customX = null, float? customY = null) => Mathf.Round(GUI.HorizontalSlider(NextControlRect(customX, customY), val, min, max));
         public static void DebugLabel(string text)
         {
             Rect rect = NextDebugControlRect();
             float textHeight = debugLabelStyle.CalcHeight(new GUIContent(text), rect.width);
-            if (textHeight > debugControlHeight)
-            {
-                rect.height = textHeight; 
-                debugNextControlY += (textHeight - debugControlHeight); 
-            }
+            if (textHeight > debugControlHeight) { rect.height = textHeight; debugNextControlY += (textHeight - debugControlHeight); }
             GUI.Label(rect, text, debugLabelStyle);
         }
 
-        public static void ResetGrid()
-        {
-            currentColumn = 0;
-            currentRow = 0;
-        }
-
-        public static void ResetDebugGrid()
-        {
-            debugCurrentColumn = 0;
-            debugCurrentRow = 0;
-            debugNextControlY = debugY + debugMargin;
-        }
+        public static void ResetGrid() { currentColumn = 0; currentRow = 0; nextControlY = y + margin + 60; } // Ajustado para espaço das abas
+        public static void ResetDebugGrid() { debugCurrentColumn = 0; debugCurrentRow = 0; debugNextControlY = debugY + debugMargin; }
     }
-
     public class Hax2 : MonoBehaviour
     {
         private float nextUpdateTime = 0f;
         private const float updateInterval = 10f;
 
         private int selectedPlayerIndex = 0;
-        private List<string> playerNames = new List<string>(); 
+        private List<string> playerNames = new List<string>();
         private List<object> playerList = new List<object>();
         private float oldSliderValue = 0.5f;
         private float sliderValue = 0.5f;
@@ -177,47 +117,34 @@ namespace r.e.p.o_cheat
         private bool showMenu = true;
         public static bool godModeActive = false;
         public static List<DebugLogMessage> debugLogMessages = new List<DebugLogMessage>();
-
         private bool showDebugMenu = false;
+
+        private enum MenuCategory { Player, ESP, Combat, Misc }
+        private MenuCategory currentCategory = MenuCategory.Player;
 
         public void Start()
         {
             Cursor.visible = showMenu;
             DebugCheats.texture2 = new Texture2D(2, 2, TextureFormat.ARGB32, false);
-            DebugCheats.texture2.SetPixel(0, 0, Color.red);
-            DebugCheats.texture2.SetPixel(1, 0, Color.red);
-            DebugCheats.texture2.SetPixel(0, 1, Color.red);
-            DebugCheats.texture2.SetPixel(1, 1, Color.red);
+            DebugCheats.texture2.SetPixels(new[] { Color.red, Color.red, Color.red, Color.red });
             DebugCheats.texture2.Apply();
+
             var playerHealthType = Type.GetType("PlayerHealth, Assembly-CSharp");
             if (playerHealthType != null)
             {
-                Log1("playerHealthType n é null");
+                Log1("playerHealthType não é null");
                 Health_Player.playerHealthInstance = FindObjectOfType(playerHealthType);
-                if (Health_Player.playerHealthInstance != null)
-                {
-                    Log1("playerHealthInstance n é null");
-                }
-                else
-                {
-                    Log1("playerHealthInstance null");
-                }
+                Log1(Health_Player.playerHealthInstance != null ? "playerHealthInstance não é null" : "playerHealthInstance null");
             }
-            else
-            {
-                Log1("playerHealthType null");
-            }
+            else Log1("playerHealthType null");
 
             var playerMaxHealth = Type.GetType("ItemUpgradePlayerHealth, Assembly-CSharp");
             if (playerMaxHealth != null)
             {
                 Health_Player.playerMaxHealthInstance = FindObjectOfType(playerMaxHealth);
-                Log1("playerMaxHealth n é null");
+                Log1("playerMaxHealth não é null");
             }
-            else
-            {
-                Log1("playerMaxHealth null");
-            }
+            else Log1("playerMaxHealth null");
         }
 
         public void Update()
@@ -225,7 +152,7 @@ namespace r.e.p.o_cheat
             if (Time.time >= nextUpdateTime)
             {
                 DebugCheats.UpdateEnemyList();
-                Hax2.Log1("Lista de inimigos atualizada!");
+                Log1("Lista de inimigos atualizada!");
                 nextUpdateTime = Time.time + updateInterval;
             }
 
@@ -235,11 +162,7 @@ namespace r.e.p.o_cheat
                 oldSliderValue = sliderValue;
             }
 
-
-            if (playerColor.isRandomizing)
-            {
-                playerColor.colorRandomizer();
-            }
+            if (playerColor.isRandomizing) playerColor.colorRandomizer();
 
             if (Input.GetKeyDown(KeyCode.Delete))
             {
@@ -247,143 +170,71 @@ namespace r.e.p.o_cheat
                 Cursor.visible = showMenu;
                 Cursor.lockState = showMenu ? CursorLockMode.None : CursorLockMode.Locked;
             }
-            if (Input.GetKeyDown(KeyCode.F5))
-            {
-                Start();
-            }
-            if (Input.GetKeyDown(KeyCode.F10))
-            {
-                Loader.UnloadCheat();
-            }
-            if (Input.GetKeyDown(KeyCode.F12))
-            {
-                showDebugMenu = !showDebugMenu;
-            }
+            if (Input.GetKeyDown(KeyCode.F5)) Start();
+            if (Input.GetKeyDown(KeyCode.F10)) Loader.UnloadCheat();
+            if (Input.GetKeyDown(KeyCode.F12)) showDebugMenu = !showDebugMenu;
 
             for (int i = debugLogMessages.Count - 1; i >= 0; i--)
             {
-                if (Time.time - debugLogMessages[i].timestamp > 3f)
-                {
-                    debugLogMessages.RemoveAt(i);
-                }
+                if (Time.time - debugLogMessages[i].timestamp > 3f) debugLogMessages.RemoveAt(i);
             }
         }
+
         private void UpdatePlayerList()
         {
             playerNames.Clear();
             playerList.Clear();
-
-            var players = SemiFunc.PlayerGetList(); 
-
+            var players = SemiFunc.PlayerGetList();
             foreach (var player in players)
             {
                 playerList.Add(player);
-                string playerName = SemiFunc.PlayerGetName(player) ?? "Unknown Player";
-                playerNames.Add(playerName);
+                playerNames.Add(SemiFunc.PlayerGetName(player) ?? "Unknown Player");
             }
-
-            if (playerNames.Count == 0)
-            {
-                playerNames.Add("No player Found");
-            }
+            if (playerNames.Count == 0) playerNames.Add("No player Found");
         }
+
         private void ReviveSelectedPlayer()
         {
-            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
-            {
-                Log1("Índice de jogador inválido!");
-                return;
-            }
-
+            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count) { Log1("Índice de jogador inválido!"); return; }
             var selectedPlayer = playerList[selectedPlayerIndex];
-
-            var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", BindingFlags.Public | BindingFlags.Instance);
             if (playerDeathHeadField != null)
             {
                 var playerDeathHeadInstance = playerDeathHeadField.GetValue(selectedPlayer);
                 if (playerDeathHeadInstance != null)
                 {
-                    var inExtractionPointField = playerDeathHeadInstance.GetType().GetField("inExtractionPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var inExtractionPointField = playerDeathHeadInstance.GetType().GetField("inExtractionPoint", BindingFlags.NonPublic | BindingFlags.Instance);
                     var reviveMethod = playerDeathHeadInstance.GetType().GetMethod("Revive");
-
-                    if (inExtractionPointField != null)
-                    {
-                        inExtractionPointField.SetValue(playerDeathHeadInstance, true);
-                    }
-
+                    if (inExtractionPointField != null) inExtractionPointField.SetValue(playerDeathHeadInstance, true);
                     reviveMethod?.Invoke(playerDeathHeadInstance, null);
                     Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
                 }
-                else
-                {
-                    Log1("Instância de playerDeathHead não encontrada.");
-                }
+                else Log1("Instância de playerDeathHead não encontrada.");
             }
-            else
-            {
-                Log1("Campo playerDeathHead não encontrado.");
-            }
+            else Log1("Campo playerDeathHead não encontrado.");
         }
 
         private void KillSelectedPlayer()
         {
-            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
-            {
-                Log1("Índice de jogador inválido!");
-                return;
-            }
-
+            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count) { Log1("Índice de jogador inválido!"); return; }
             var selectedPlayer = playerList[selectedPlayerIndex];
-            if (selectedPlayer == null)
-            {
-                Log1("Jogador selecionado é nulo!");
-                return;
-            }
-
+            if (selectedPlayer == null) { Log1("Jogador selecionado é nulo!"); return; }
             try
             {
                 Log1($"Tentando matar: {playerNames[selectedPlayerIndex]} | MasterClient: {PhotonNetwork.IsMasterClient}");
-
                 var photonViewField = selectedPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (photonViewField == null)
-                {
-                    Log1("PhotonViewField não encontrado!");
-                    return;
-                }
-
-                var photonViewValue = photonViewField.GetValue(selectedPlayer);
-                if (!(photonViewValue is PhotonView photonView))
-                {
-                    Log1("PhotonView não é válido!");
-                    return;
-                }
-
+                if (photonViewField == null) { Log1("PhotonViewField não encontrado!"); return; }
+                var photonView = photonViewField.GetValue(selectedPlayer) as PhotonView;
+                if (photonView == null) { Log1("PhotonView não é válido!"); return; }
                 var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (playerHealthField == null)
-                {
-                    Log1("Campo 'playerHealth' não encontrado!");
-                    return;
-                }
-
+                if (playerHealthField == null) { Log1("Campo 'playerHealth' não encontrado!"); return; }
                 var playerHealthInstance = playerHealthField.GetValue(selectedPlayer);
-                if (playerHealthInstance == null)
-                {
-                    Log1("Instância de playerHealth é nula!");
-                    return;
-                }
-
+                if (playerHealthInstance == null) { Log1("Instância de playerHealth é nula!"); return; }
                 var healthType = playerHealthInstance.GetType();
-
                 var deathMethod = healthType.GetMethod("Death", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (deathMethod == null)
-                {
-                    Log1("Método 'Death' não encontrado!");
-                    return;
-                }
-
+                if (deathMethod == null) { Log1("Método 'Death' não encontrado!"); return; }
                 deathMethod.Invoke(playerHealthInstance, null);
                 Log1($"Método 'Death' chamado localmente para {playerNames[selectedPlayerIndex]}.");
-
                 var playerAvatarField = healthType.GetField("playerAvatar", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (playerAvatarField != null)
                 {
@@ -392,161 +243,118 @@ namespace r.e.p.o_cheat
                     {
                         var playerAvatarType = playerAvatarInstance.GetType();
                         var playerDeathMethod = playerAvatarType.GetMethod("PlayerDeath", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (playerDeathMethod != null)
-                        {
-                            playerDeathMethod.Invoke(playerAvatarInstance, new object[] { -1 });
-                            Log1($"Método 'PlayerDeath' chamado localmente para {playerNames[selectedPlayerIndex]}.");
-                        }
-                        else
-                        {
-                            Log1("Método 'PlayerDeath' não encontrado em PlayerAvatar!");
-                        }
+                        if (playerDeathMethod != null) { playerDeathMethod.Invoke(playerAvatarInstance, new object[] { -1 }); Log1($"Método 'PlayerDeath' chamado localmente para {playerNames[selectedPlayerIndex]}."); }
+                        else Log1("Método 'PlayerDeath' não encontrado em PlayerAvatar!");
                     }
-                    else
-                    {
-                        Log1("Instância de PlayerAvatar é nula!");
-                    }
+                    else Log1("Instância de PlayerAvatar é nula!");
                 }
-                else
-                {
-                    Log1("Campo 'playerAvatar' não encontrado em PlayerHealth!");
-                }
-
+                else Log1("Campo 'playerAvatar' não encontrado em PlayerHealth!");
                 if (PhotonNetwork.IsConnected && photonView != null)
                 {
                     var maxHealthField = healthType.GetField("maxHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    int maxHealth = 100;
-                    if (maxHealthField != null)
-                    {
-                        maxHealth = (int)maxHealthField.GetValue(playerHealthInstance);
-                        Log1($"maxHealth encontrado: {maxHealth}");
-                    }
-                    else
-                    {
-                        Log1("Campo 'maxHealth' não encontrado, usando valor padrão: 100");
-                    }
-
+                    int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
+                    Log1(maxHealthField != null ? $"maxHealth encontrado: {maxHealth}" : "Campo 'maxHealth' não encontrado, usando valor padrão: 100");
                     photonView.RPC("UpdateHealthRPC", RpcTarget.AllBuffered, new object[] { 0, maxHealth, true });
                     Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde=0, maxHealth={maxHealth}, effect=true.");
-
-                    try
-                    {
-                        photonView.RPC("PlayerDeathRPC", RpcTarget.AllBuffered, new object[] { -1 });
-                        Log1("Tentando RPC 'PlayerDeathRPC' para forçar morte...");
-                    }
-                    catch
-                    {
-                        Log1("RPC 'PlayerDeathRPC' não registrado, tentando alternativa...");
-                    }
-
+                    try { photonView.RPC("PlayerDeathRPC", RpcTarget.AllBuffered, new object[] { -1 }); Log1("Tentando RPC 'PlayerDeathRPC' para forçar morte..."); }
+                    catch { Log1("RPC 'PlayerDeathRPC' não registrado, tentando alternativa..."); }
                     photonView.RPC("HurtOtherRPC", RpcTarget.AllBuffered, new object[] { 9999, Vector3.zero, false, -1 });
                     Log1("RPC 'HurtOtherRPC' enviado com 9999 de dano para garantir morte.");
                 }
-                else
-                {
-                    Log1("Não conectado ao Photon, morte apenas local.");
-                }
-
+                else Log1("Não conectado ao Photon, morte apenas local.");
                 Log1($"Tentativa de matar {playerNames[selectedPlayerIndex]} concluída.");
             }
-            catch (Exception e)
-            {
-                Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}");
-            }
+            catch (Exception e) { Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}"); }
         }
+
         public void OnGUI()
         {
-            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool)
-            {
-                DebugCheats.DrawESP();
-            }
-            UIHelper.ResetGrid();
+            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool) DebugCheats.DrawESP();
 
             GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
             GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
 
             if (showMenu)
             {
-                UIHelper.ResetGrid();
-                UIHelper.Begin("DARK Menu", 50, 50, 500, 900, 30, 30, 10);
+                UIHelper.Begin("DARK Menu", 50, 50, 500, 600, 30, 30, 10);
 
-                UIHelper.Label("Press F5 to reload!", 70, 80);
-                UIHelper.Label("Press DEL to close menu!", 225, 80);
-                UIHelper.Label("Press F10 to unload!", 410, 80);
+                // Abas de categoria
+                float tabWidth = (500 - 5 * 30) / 4;
+                if (GUI.Button(new Rect(50 + 30, 80, tabWidth, 30), "Player")) currentCategory = MenuCategory.Player;
+                if (GUI.Button(new Rect(50 + 30 + tabWidth + 30, 80, tabWidth, 30), "ESP")) currentCategory = MenuCategory.ESP;
+                if (GUI.Button(new Rect(50 + 30 + 2 * (tabWidth + 30), 80, tabWidth, 30), "Combat")) currentCategory = MenuCategory.Combat;
+                if (GUI.Button(new Rect(50 + 30 + 3 * (tabWidth + 30), 80, tabWidth, 30), "Misc")) currentCategory = MenuCategory.Misc;
 
-                if (UIHelper.Button("Heal Player", 170, 130))
+                UIHelper.Label("Press F5 to reload! Press DEL to close! Press F10 to unload!", 70, 120);
+
+                switch (currentCategory)
                 {
-                    Health_Player.HealPlayer(50);
-                    Debug.Log("Player healed.");
-                }
-                if (UIHelper.Button("Damage Player", 170, 180))
-                {
-                    Health_Player.DamagePlayer(1);
-                    Debug.Log("Player damaged.");
-                }
-                if (UIHelper.Button("Infinite Health", 170, 230))
-                {
-                    Health_Player.MaxHealth();
-                    Debug.Log("Infinite health activated.");
-                }
+                    case MenuCategory.Player:
+                        UpdatePlayerList();
+                        UIHelper.Label("Select a player:", 70, 160);
+                        selectedPlayerIndex = GUI.SelectionGrid(new Rect(70, 180, 440, 100), selectedPlayerIndex, playerNames.ToArray(), 1);
 
-                if (UIHelper.Button("Infinity Stamina", 170, 280))
-                {
-                    PlayerController.MaxStamina();
-                }
+                        if (UIHelper.Button("Heal Player", 70, 300))
+                        {
+                            if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
+                            {
+                                Health_Player.HealPlayer(playerList[selectedPlayerIndex], 50);
+                                Debug.Log($"Player {playerNames[selectedPlayerIndex]} healed.");
+                            }
+                            else
+                            {
+                                Hax2.Log1("Nenhum jogador válido selecionado para curar!");
+                            }
+                        }
+                        if (UIHelper.Button("Damage Player", 70, 340))
+                        {
+                            if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
+                            {
+                                Health_Player.DamagePlayer(playerList[selectedPlayerIndex], 1);
+                                Debug.Log($"Player {playerNames[selectedPlayerIndex]} damaged.");
+                            }
+                            else
+                            {
+                                Hax2.Log1("Nenhum jogador válido selecionado para causar dano!");
+                            }
+                        }
+                        if (UIHelper.Button("Infinite Health", 70, 380)) { Health_Player.MaxHealth(); Debug.Log("Infinite health activated."); }
+                        if (UIHelper.Button("Infinity Stamina", 70, 420)) PlayerController.MaxStamina();
+                        bool newGodModeState = UIHelper.ButtonBool("God Mode", godModeActive, 70, 460);
+                        if (newGodModeState != godModeActive)
+                        {
+                            PlayerController.GodMode();
+                            godModeActive = newGodModeState;
+                            Debug.Log("God mode toggled: " + godModeActive);
+                        }
+                        UIHelper.Label("Speed Value " + sliderValue, 70, 500);
+                        oldSliderValue = sliderValue;
+                        sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 70, 520);
+                        break;
+                    case MenuCategory.ESP:
+                        DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 70, 160);
+                        DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 70, 200);
+                        break;
 
-                UpdatePlayerList();
+                    case MenuCategory.Combat:
+                        UpdatePlayerList();
+                        UIHelper.Label("Select a player:", 70, 160);
+                        selectedPlayerIndex = GUI.SelectionGrid(new Rect(70, 180, 440, 200), selectedPlayerIndex, playerNames.ToArray(), 1);
+                        if (UIHelper.Button("Revive", 70, 390)) { ReviveSelectedPlayer(); Debug.Log("Player revived: " + playerNames[selectedPlayerIndex]); }
+                        if (UIHelper.Button("Kill Selected Player", 70, 430)) { KillSelectedPlayer(); Debug.Log("Tentativa de matar o jogador selecionado realizada."); }
+                        if (UIHelper.Button("Kill All Enemies", 70, 470)) DebugCheats.KillAllEnemies();
+                        break;
 
-                UIHelper.Label("Select a player to Revive:", 220, 320);
-                selectedPlayerIndex = GUI.SelectionGrid(new Rect(170, 350, 272, 100), selectedPlayerIndex, playerNames.ToArray(), 1);
-
-                if (UIHelper.Button("Revive", 170, 480))
-                {
-                    ReviveSelectedPlayer();
-                    Debug.Log("Player revived: " + playerNames[selectedPlayerIndex]);
-                }
-                if (UIHelper.Button("Kill Selected Player", 170, 530)) 
-                {
-                    KillSelectedPlayer();
-                    Debug.Log("Tentativa de matar o jogador selecionado realizada.");
-                }
-
-                bool newGodModeState = UIHelper.ButtonBool("God Mode", godModeActive, 170, 580);
-                if (newGodModeState != godModeActive)
-                {
-                    PlayerController.GodMode(); 
-                    godModeActive = newGodModeState;
-                    Debug.Log("God mode toggled: " + godModeActive);
-                }
-
-                if (UIHelper.Button("Send Player To Void", 170, 630))
-                {
-                    PlayerController.SendFirstPlayerToVoid();
-                }
-
-                if (UIHelper.Button("Kill All Enemies", 170, 680))
-                {
-                    DebugCheats.KillAllEnemies();
-                }
-
-                if (UIHelper.Button("Spawn Money", 170, 730))
-                {
-                    DebugCheats.SpawnItem();
-                    Debug.Log("Money spawned.");
-                }
-
-                UIHelper.Label("Speed Value " + sliderValue, 170, 780);
-                oldSliderValue = sliderValue;
-                sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 170, 800);
-
-                DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 170, 820);
-                DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 170, 850); 
-
-                bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 170, 880);
-                if (newPlayerColorState != playerColor.isRandomizing)
-                {
-                    playerColor.isRandomizing = newPlayerColorState;
-                    Debug.Log("Randomize toggled: " + playerColor.isRandomizing);
+                    case MenuCategory.Misc:
+                        if (UIHelper.Button("Spawn Money", 70, 160)) { DebugCheats.SpawnItem(); Debug.Log("Money spawned."); }
+                        if (UIHelper.Button("Send Player To Void", 70, 200)) PlayerController.SendFirstPlayerToVoid();
+                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 70, 240);
+                        if (newPlayerColorState != playerColor.isRandomizing)
+                        {
+                            playerColor.isRandomizing = newPlayerColorState;
+                            Debug.Log("Randomize toggled: " + playerColor.isRandomizing);
+                        }
+                        break;
                 }
             }
 
@@ -554,33 +362,20 @@ namespace r.e.p.o_cheat
             {
                 UIHelper.ResetDebugGrid();
                 UIHelper.BeginDebugMenu("Debug Log", 600, 50, 500, 500, 30, 30, 10);
-
                 UIHelper.Label("Press F12 to close debug log", 630, 70);
-
                 foreach (var logMessage in debugLogMessages)
                 {
-                    if (!string.IsNullOrEmpty(logMessage.message))
-                    {
-                        UIHelper.DebugLabel(logMessage.message);
-                    }
+                    if (!string.IsNullOrEmpty(logMessage.message)) UIHelper.DebugLabel(logMessage.message);
                 }
             }
         }
-        public static void Log1(string message)
-        {
-            debugLogMessages.Add(new DebugLogMessage(message, Time.time));
-        }
+        public static void Log1(string message) => debugLogMessages.Add(new DebugLogMessage(message, Time.time));
 
         public class DebugLogMessage
         {
             public string message;
             public float timestamp;
-
-            public DebugLogMessage(string msg, float time)
-            {
-                message = msg;
-                timestamp = time;
-            }
+            public DebugLogMessage(string msg, float time) { message = msg; timestamp = time; }
         }
     }
 }
