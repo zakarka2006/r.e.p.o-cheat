@@ -226,7 +226,6 @@ namespace r.e.p.o_cheat
                 EnsureItemVisibility(spawnedItem);
             }
         }
-
         private static void EnsureItemVisibility(GameObject item)
         {
             if (item == null)
