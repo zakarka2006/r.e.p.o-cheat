@@ -6,12 +6,13 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using Photon;
+
 namespace r.e.p.o_cheat
 {
     public static class UIHelper
     {
         private static float x, y, width, height, margin, controlHeight, controlDist, nextControlY;
-        private static int columns = 1; // Reduzido para 1 por padrão para evitar desorganização
+        private static int columns = 1;
         private static int currentColumn = 0;
         private static int currentRow = 0;
 
@@ -38,9 +39,9 @@ namespace r.e.p.o_cheat
         public static void Begin(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
         {
             x = _x; y = _y; width = _width; height = _height; margin = _margin; controlHeight = _controlHeight; controlDist = _controlDist;
-            nextControlY = y + margin + 60; // Ajustado para dar espaço às abas
+            nextControlY = y + margin + 60;
             GUI.Box(new Rect(x, y, width, height), text);
-            ResetGrid(); // Reinicia a grade ao iniciar um novo menu
+            ResetGrid();
         }
 
         public static void BeginDebugMenu(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
@@ -59,7 +60,7 @@ namespace r.e.p.o_cheat
 
             Rect rect = new Rect(controlX, controlY, controlWidth, controlHeight);
 
-            if (customX == null && customY == null) // Avança apenas se não houver coordenadas manuais
+            if (customX == null && customY == null)
             {
                 currentColumn++;
                 if (currentColumn >= columns)
@@ -100,9 +101,10 @@ namespace r.e.p.o_cheat
             GUI.Label(rect, text, debugLabelStyle);
         }
 
-        public static void ResetGrid() { currentColumn = 0; currentRow = 0; nextControlY = y + margin + 60; } // Ajustado para espaço das abas
+        public static void ResetGrid() { currentColumn = 0; currentRow = 0; nextControlY = y + margin + 60; }
         public static void ResetDebugGrid() { debugCurrentColumn = 0; debugCurrentRow = 0; debugNextControlY = debugY + debugMargin; }
     }
+
     public class Hax2 : MonoBehaviour
     {
         private float nextUpdateTime = 0f;
@@ -188,9 +190,48 @@ namespace r.e.p.o_cheat
             foreach (var player in players)
             {
                 playerList.Add(player);
-                playerNames.Add(SemiFunc.PlayerGetName(player) ?? "Unknown Player");
+                string baseName = SemiFunc.PlayerGetName(player) ?? "Unknown Player";
+                bool isAlive = IsPlayerAlive(player, baseName);
+                string statusText = isAlive ? "<color=green>[LIVE]</color> " : "<color=red>[DEAD]</color> ";
+                playerNames.Add(statusText + baseName);
             }
             if (playerNames.Count == 0) playerNames.Add("No player Found");
+        }
+
+        private bool IsPlayerAlive(object player, string playerName)
+        {
+            try
+            {
+                var playerHealthField = player.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (playerHealthField == null)
+                {
+                    Hax2.Log1($"Campo 'playerHealth' não encontrado para {playerName}");
+                    return true;
+                }
+
+                var playerHealthInstance = playerHealthField.GetValue(player);
+                if (playerHealthInstance == null)
+                {
+                    Hax2.Log1($"playerHealthInstance é nulo para {playerName}");
+                    return true; 
+                }
+
+                var healthField = playerHealthInstance.GetType().GetField("health", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (healthField == null)
+                {
+                    Hax2.Log1($"Campo 'health' não encontrado na instância de PlayerHealth para {playerName}");
+                    return true;
+                }
+
+                int health = (int)healthField.GetValue(playerHealthInstance);
+                Hax2.Log1($"Health para {playerName}: {health}");
+                return health > 0;
+            }
+            catch (Exception e)
+            {
+                Hax2.Log1($"Erro ao verificar vida de {playerName}: {e.Message}");
+                return true;
+            }
         }
 
         private void ReviveSelectedPlayer()
@@ -278,7 +319,6 @@ namespace r.e.p.o_cheat
             {
                 UIHelper.Begin("DARK Menu", 50, 50, 500, 600, 30, 30, 10);
 
-                // Abas de categoria
                 float tabWidth = (500 - 5 * 30) / 4;
                 if (GUI.Button(new Rect(50 + 30, 80, tabWidth, 30), "Player")) currentCategory = MenuCategory.Player;
                 if (GUI.Button(new Rect(50 + 30 + tabWidth + 30, 80, tabWidth, 30), "ESP")) currentCategory = MenuCategory.ESP;
@@ -298,7 +338,7 @@ namespace r.e.p.o_cheat
                         {
                             if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
                             {
-                                Health_Player.HealPlayer(playerList[selectedPlayerIndex], 50);
+                                Health_Player.HealPlayer(playerList[selectedPlayerIndex], 50, playerNames[selectedPlayerIndex]);
                                 Debug.Log($"Player {playerNames[selectedPlayerIndex]} healed.");
                             }
                             else
@@ -310,7 +350,7 @@ namespace r.e.p.o_cheat
                         {
                             if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
                             {
-                                Health_Player.DamagePlayer(playerList[selectedPlayerIndex], 1);
+                                Health_Player.DamagePlayer(playerList[selectedPlayerIndex], 1, playerNames[selectedPlayerIndex]);
                                 Debug.Log($"Player {playerNames[selectedPlayerIndex]} damaged.");
                             }
                             else
@@ -331,6 +371,7 @@ namespace r.e.p.o_cheat
                         oldSliderValue = sliderValue;
                         sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 70, 520);
                         break;
+
                     case MenuCategory.ESP:
                         DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 70, 160);
                         DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 70, 200);
@@ -369,6 +410,7 @@ namespace r.e.p.o_cheat
                 }
             }
         }
+
         public static void Log1(string message) => debugLogMessages.Add(new DebugLogMessage(message, Time.time));
 
         public class DebugLogMessage

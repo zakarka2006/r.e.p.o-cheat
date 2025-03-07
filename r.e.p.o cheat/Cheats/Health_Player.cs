@@ -10,7 +10,7 @@ namespace r.e.p.o_cheat
         static public object playerHealthInstance;
         static public object playerMaxHealthInstance;
 
-        public static void HealPlayer(object targetPlayer, int healAmount)
+        public static void HealPlayer(object targetPlayer, int healAmount, string playerName)
         {
             if (targetPlayer == null)
             {
@@ -20,7 +20,7 @@ namespace r.e.p.o_cheat
 
             try
             {
-              //  Hax2.Log1($"Tentando curar: {SemiFunc.PlayerGetName(targetPlayer) ?? "Unknown Player"} | MasterClient: {PhotonNetwork.IsMasterClient}");
+                Hax2.Log1($"Tentando curar: {playerName} | MasterClient: {PhotonNetwork.IsMasterClient}");
                 var photonViewField = targetPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (photonViewField == null) { Hax2.Log1("PhotonViewField não encontrado!"); return; }
                 var photonView = photonViewField.GetValue(targetPlayer) as PhotonView;
@@ -51,9 +51,8 @@ namespace r.e.p.o_cheat
                     int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
                     Hax2.Log1(maxHealthField != null ? $"maxHealth encontrado: {maxHealth}" : "Campo 'maxHealth' não encontrado, usando valor padrão: 100");
 
-                    // Sincronizar a cura via RPC
-                    photonView.RPC("UpdateHealthRPC", RpcTarget.AllBuffered, new object[] { maxHealth, maxHealth, true });
-                    Hax2.Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde={maxHealth}, maxHealth={maxHealth}, effect=true.");
+                    photonView.RPC("UpdateHealthRPC", RpcTarget.AllBuffered, new object[] { currentHealth + healAmount, maxHealth, true });
+                    Hax2.Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde={currentHealth + healAmount}, maxHealth={maxHealth}, effect=true.");
 
                     try
                     {
@@ -77,7 +76,7 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public static void DamagePlayer(object targetPlayer, int damageAmount)
+        public static void DamagePlayer(object targetPlayer, int damageAmount, string playerName)
         {
             if (targetPlayer == null)
             {
@@ -87,7 +86,7 @@ namespace r.e.p.o_cheat
 
             try
             {
-               // Hax2.Log1($"Tentando causar dano: {SemiFunc.PlayerGetName(targetPlayer) ?? "Unknown Player"} | MasterClient: {PhotonNetwork.IsMasterClient}");
+                Hax2.Log1($"Tentando causar dano: {playerName} | MasterClient: {PhotonNetwork.IsMasterClient}");
                 var photonViewField = targetPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (photonViewField == null) { Hax2.Log1("PhotonViewField não encontrado!"); return; }
                 var photonView = photonViewField.GetValue(targetPlayer) as PhotonView;
@@ -116,7 +115,6 @@ namespace r.e.p.o_cheat
                     int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
                     Hax2.Log1(maxHealthField != null ? $"maxHealth encontrado: {maxHealth}" : "Campo 'maxHealth' não encontrado, usando valor padrão: 100");
 
-                    // Sincronizar o dano via RPC
                     photonView.RPC("HurtOtherRPC", RpcTarget.AllBuffered, new object[] { damageAmount, Vector3.zero, false, -1 });
                     Hax2.Log1($"RPC 'HurtOtherRPC' enviado com {damageAmount} de dano.");
 

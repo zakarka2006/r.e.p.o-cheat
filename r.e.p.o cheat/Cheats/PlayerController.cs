@@ -269,6 +269,37 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("PlayerController type not found.");
             }
         }
+        public static void MaxStrenght()
+        {
+            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
+            if (playerControllerType != null)
+            {
+                Hax2.Log1("PlayerController found.");
+
+                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
+                if (playerControllerInstance != null)
+                {
+                    var energyCurrentField = playerControllerInstance.GetType().GetField("grabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    if (energyCurrentField != null)
+                    {
+                        energyCurrentField.SetValue(playerControllerInstance, 999999);
+                        Hax2.Log1("grabStrength set to " + 999999);
+                    }
+                    else
+                    {
+                        Hax2.Log1("grabStrength field not found in playerAvatarScript.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1("playerControllerInstance not found.");
+                }
+            }
+            else
+            {
+                Hax2.Log1("PlayerController type not found.");
+            }
+        }
 
     }
 }
