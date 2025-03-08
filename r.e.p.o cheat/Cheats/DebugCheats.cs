@@ -587,9 +587,9 @@ namespace r.e.p.o_cheat
                         {
                             itemName = itemName.Substring("Valuable".Length).Trim();
                         }
-                        if (itemName.EndsWith(" (Clone)", StringComparison.OrdinalIgnoreCase))
+                        if (itemName.EndsWith("(Clone)", StringComparison.OrdinalIgnoreCase))
                         {
-                            itemName = itemName.Substring(0, itemName.Length - " (Clone)".Length).Trim();
+                            itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
                         }
 
                         var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
