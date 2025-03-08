@@ -147,7 +147,7 @@ namespace r.e.p.o_cheat
                 return;
             }
 
-            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f; // Aumentado para evitar colisão
+            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f; 
             GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
             if (itemToSpawn == null)
             {
@@ -176,7 +176,6 @@ namespace r.e.p.o_cheat
 
                 Hax2.Log1("PhotonView Owner: " + photonView.Owner?.NickName + ", IsMine: " + photonView.IsMine + ", ViewID: " + photonView.ViewID);
 
-                // Adicionar PhotonTransformView para posição e rotação
                 PhotonTransformView transformView = spawnedItem.GetComponent<PhotonTransformView>();
                 if (transformView == null)
                 {
@@ -184,7 +183,6 @@ namespace r.e.p.o_cheat
                     Hax2.Log1("Added PhotonTransformView to " + spawnedItem.name + " for position/rotation sync.");
                 }
 
-                // Adicionar PhotonRigidbodyView para física
                 PhotonRigidbodyView rigidbodyView = spawnedItem.GetComponent<PhotonRigidbodyView>();
                 if (rigidbodyView == null)
                 {
@@ -192,10 +190,8 @@ namespace r.e.p.o_cheat
                     Hax2.Log1("Added PhotonRigidbodyView to " + spawnedItem.name + " for physics sync.");
                 }
 
-                // Garantir que PhotonView observe ambos os componentes
                 photonView.ObservedComponents = new List<Component> { transformView, rigidbodyView };
 
-                // Forçar propriedade para o Master Client
                 if (PhotonNetwork.IsMasterClient)
                 {
                     photonView.TransferOwnership(PhotonNetwork.LocalPlayer);
@@ -205,8 +201,8 @@ namespace r.e.p.o_cheat
                 Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    rb.position = spawnPosition; // Forçar posição inicial
-                    rb.isKinematic = false; // Física ativa desde o início em todos os clientes
+                    rb.position = spawnPosition;
+                    rb.isKinematic = false;
                     if (PhotonNetwork.IsMasterClient)
                     {
                         Hax2.Log1("Master Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
@@ -225,7 +221,6 @@ namespace r.e.p.o_cheat
             }
             else
             {
-                // Singleplayer: Spawn local
                 var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
                 if (debugAxelType != null)
                 {
@@ -457,7 +452,6 @@ namespace r.e.p.o_cheat
             frameCounter++;
             if (frameCounter % 2 != 0) return;
 
-            // Verificar e atualizar a câmera principal
             if (cachedCamera == null || cachedCamera != Camera.main)
             {
                 cachedCamera = Camera.main;
@@ -468,7 +462,6 @@ namespace r.e.p.o_cheat
                 }
             }
 
-            // Recalcular scaleX e scaleY a cada frame para lidar com mudanças de resolução
             scaleX = (float)Screen.width / cachedCamera.pixelWidth;
             scaleY = (float)Screen.height / cachedCamera.pixelHeight;
 
@@ -542,7 +535,6 @@ namespace r.e.p.o_cheat
 
             if (drawItemEspBool)
             {
-                // [O resto do código para itens permanece igual, apenas use scaleX e scaleY atualizados]
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
                 {
                     normal = { textColor = Color.yellow },

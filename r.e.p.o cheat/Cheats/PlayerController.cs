@@ -269,30 +269,68 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("PlayerController type not found.");
             }
         }
-        public static void MaxStrenght()
+        public static void MaxStrength()
         {
             var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
             if (playerControllerType != null)
             {
-                Hax2.Log1("PlayerController found.");
+                Hax2.Log1("PlayerController type found.");
 
                 var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
                 if (playerControllerInstance != null)
                 {
-                    var energyCurrentField = playerControllerInstance.GetType().GetField("grabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                    if (energyCurrentField != null)
+                    Hax2.Log1("PlayerController instance found.");
+
+                    var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    if (playerAvatarScriptField != null)
                     {
-                        energyCurrentField.SetValue(playerControllerInstance, 999999);
-                        Hax2.Log1("grabStrength set to " + 999999);
+                        var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+                        if (playerAvatarScriptInstance != null)
+                        {
+                            Hax2.Log1("playerAvatarScript instance found.");
+
+                            var physGrabberField = playerAvatarScriptInstance.GetType().GetField("physGrabber", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                            if (physGrabberField != null)
+                            {
+                                var physGrabberInstance = physGrabberField.GetValue(playerAvatarScriptInstance);
+                                if (physGrabberInstance != null)
+                                {
+                                    Hax2.Log1("physGrabber instance found.");
+
+                                    var grabStrengthField = physGrabberInstance.GetType().GetField("grabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                                    if (grabStrengthField != null)
+                                    {
+                                        grabStrengthField.SetValue(physGrabberInstance, Hax2.sliderValueStrength);
+                                        Hax2.Log1("grabStrength set to " + Hax2.sliderValueStrength);
+                                    }
+                                    else
+                                    {
+                                        Hax2.Log1("grabStrength field not found in PhysGrabber.");
+                                    }
+                                }
+                                else
+                                {
+                                    Hax2.Log1("physGrabber instance is null.");
+                                }
+                            }
+                            else
+                            {
+                                Hax2.Log1("physGrabber field not found in PlayerAvatarScript.");
+                            }
+                        }
+                        else
+                        {
+                            Hax2.Log1("playerAvatarScript instance is null.");
+                        }
                     }
                     else
                     {
-                        Hax2.Log1("grabStrength field not found in playerAvatarScript.");
+                        Hax2.Log1("playerAvatarScript field not found in PlayerController.");
                     }
                 }
                 else
                 {
-                    Hax2.Log1("playerControllerInstance not found.");
+                    Hax2.Log1("PlayerController instance not found.");
                 }
             }
             else

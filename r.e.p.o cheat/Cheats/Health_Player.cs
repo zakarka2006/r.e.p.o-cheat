@@ -52,7 +52,7 @@ namespace r.e.p.o_cheat
                     Hax2.Log1(maxHealthField != null ? $"maxHealth encontrado: {maxHealth}" : "Campo 'maxHealth' não encontrado, usando valor padrão: 100");
 
                     photonView.RPC("UpdateHealthRPC", RpcTarget.AllBuffered, new object[] { currentHealth + healAmount, maxHealth, true });
-                    Hax2.Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde={currentHealth + healAmount}, maxHealth={maxHealth}, effect=true.");
+                    Hax2.Log1($"RPC 'UpdateHealthRPC' enviado para todos com saúde={currentHealth + maxHealth}, maxHealth={maxHealth}, effect=true.");
 
                     try
                     {
