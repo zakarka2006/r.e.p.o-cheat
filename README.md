@@ -42,3 +42,4 @@ Im still looking to advance this cheat even more, since its very simple to make 
 # Unknowncheats.me thread
 Main UC Thread: https://www.unknowncheats.me/forum/other-mmorpg-and-strategy/689820-simple-cheat.html#post4335827
 
+Our discord link for general help: https://discord.gg/PQY3nxJMHp
