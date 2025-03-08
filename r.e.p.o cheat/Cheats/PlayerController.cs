@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Threading;
-using System.Threading;
+using Photon.Pun;
 namespace r.e.p.o_cheat
 {
     static class PlayerController
@@ -210,34 +210,7 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("SemiFunc não encontrado.");
             }
         }*/
-        public static void SendFirstPlayerToVoid()
-        {
-            var playerController = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerController != null)
-            {
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerController);
-                {
-                    if (playerControllerInstance != null)
-                    {
-                        Hax2.Log1("reviveInstance n é null.");
-                        var damageMethod1 = playerControllerInstance.GetType().GetMethod("Revive");
-                        if (damageMethod1 != null)
-                        {
-                            Vector3 spawnPosition = new Vector3(-9999f, -9999f, -99999f);
-                            damageMethod1.Invoke(spawnPosition, new object[] { });
-                            Hax2.Log1("Player Sent to Void");
-                        } else
-                        {
-                            Hax2.Log1("piroquinha null");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Hax2.Log1("reviveInstance null");
-            }
-        }
+
         public static void MaxStamina()
         {
             var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
@@ -269,73 +242,135 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("PlayerController type not found.");
             }
         }
+
         public static void MaxStrength()
         {
             var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerControllerType != null)
+            if (playerControllerType == null)
             {
-                Hax2.Log1("PlayerController type found.");
+                Hax2.Log1("PlayerController type not found.");
+                return;
+            }
+            Hax2.Log1("PlayerController type found.");
 
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
-                if (playerControllerInstance != null)
+            var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
+            if (playerControllerInstance == null)
+            {
+                Hax2.Log1("PlayerController instance not found.");
+                return;
+            }
+            Hax2.Log1("PlayerController instance found.");
+
+            var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (playerAvatarScriptField == null)
+            {
+                Hax2.Log1("playerAvatarScript field not found in PlayerController.");
+                return;
+            }
+
+            var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+            if (playerAvatarScriptInstance == null)
+            {
+                Hax2.Log1("playerAvatarScript instance is null.");
+                return;
+            }
+            Hax2.Log1("playerAvatarScript instance found.");
+
+            var physGrabberField = playerAvatarScriptInstance.GetType().GetField("physGrabber", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (physGrabberField == null)
+            {
+                Hax2.Log1("physGrabber field not found in PlayerAvatarScript.");
+                return;
+            }
+            var physGrabberInstance = physGrabberField.GetValue(playerAvatarScriptInstance);
+            if (physGrabberInstance == null)
+            {
+                Hax2.Log1("physGrabber instance is null.");
+                return;
+            }
+            Hax2.Log1("physGrabber instance found.");
+
+            var steamIDField = playerAvatarScriptInstance.GetType().GetField("steamID", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (steamIDField == null)
+            {
+                Hax2.Log1("steamID field not found in PlayerAvatarScript.");
+                return;
+            }
+            string steamID = steamIDField.GetValue(playerAvatarScriptInstance) as string;
+            if (string.IsNullOrEmpty(steamID))
+            {
+                Hax2.Log1("steamID is null or empty.");
+                return;
+            }
+            Hax2.Log1($"steamID found: {steamID}");
+
+            var grabStrengthField = physGrabberInstance.GetType().GetField("grabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (grabStrengthField != null)
+            {
+                grabStrengthField.SetValue(physGrabberInstance, Hax2.sliderValueStrength);
+                Hax2.Log1($"grabStrength set locally to {Hax2.sliderValueStrength}");
+            }
+            else
+            {
+                Hax2.Log1("grabStrength field not found in PhysGrabber.");
+            }
+
+            var statsManagerType = Type.GetType("StatsManager, Assembly-CSharp");
+            if (statsManagerType != null)
+            {
+                var statsManagerInstanceField = statsManagerType.GetField("instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                var statsManagerInstance = statsManagerInstanceField?.GetValue(null);
+                if (statsManagerInstance != null)
                 {
-                    Hax2.Log1("PlayerController instance found.");
-
-                    var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                    if (playerAvatarScriptField != null)
+                    var playerUpgradeStrengthField = statsManagerInstance.GetType().GetField("playerUpgradeStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    var playerUpgradeStrength = playerUpgradeStrengthField?.GetValue(statsManagerInstance) as System.Collections.Generic.Dictionary<string, int>;
+                    if (playerUpgradeStrength != null)
                     {
-                        var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
-                        if (playerAvatarScriptInstance != null)
-                        {
-                            Hax2.Log1("playerAvatarScript instance found.");
-
-                            var physGrabberField = playerAvatarScriptInstance.GetType().GetField("physGrabber", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                            if (physGrabberField != null)
-                            {
-                                var physGrabberInstance = physGrabberField.GetValue(playerAvatarScriptInstance);
-                                if (physGrabberInstance != null)
-                                {
-                                    Hax2.Log1("physGrabber instance found.");
-
-                                    var grabStrengthField = physGrabberInstance.GetType().GetField("grabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                                    if (grabStrengthField != null)
-                                    {
-                                        grabStrengthField.SetValue(physGrabberInstance, Hax2.sliderValueStrength);
-                                        Hax2.Log1("grabStrength set to " + Hax2.sliderValueStrength);
-                                    }
-                                    else
-                                    {
-                                        Hax2.Log1("grabStrength field not found in PhysGrabber.");
-                                    }
-                                }
-                                else
-                                {
-                                    Hax2.Log1("physGrabber instance is null.");
-                                }
-                            }
-                            else
-                            {
-                                Hax2.Log1("physGrabber field not found in PlayerAvatarScript.");
-                            }
-                        }
-                        else
-                        {
-                            Hax2.Log1("playerAvatarScript instance is null.");
-                        }
+                        int newUpgradeValue = Mathf.FloorToInt(Hax2.sliderValueStrength / 0.2f);
+                        playerUpgradeStrength[steamID] = newUpgradeValue;
+                        Hax2.Log1($"playerUpgradeStrength[{steamID}] set to {newUpgradeValue}");
                     }
                     else
                     {
-                        Hax2.Log1("playerAvatarScript field not found in PlayerController.");
+                        Hax2.Log1("playerUpgradeStrength dictionary not found in StatsManager.");
                     }
                 }
                 else
                 {
-                    Hax2.Log1("PlayerController instance not found.");
+                    Hax2.Log1("StatsManager instance not found.");
                 }
             }
             else
             {
-                Hax2.Log1("PlayerController type not found.");
+                Hax2.Log1("StatsManager type not found.");
+            }
+
+            var punManagerType = Type.GetType("PunManager, Assembly-CSharp");
+            if (punManagerType != null)
+            {
+                var punManagerInstanceField = punManagerType.GetField("instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                var punManagerInstance = punManagerInstanceField?.GetValue(null);
+                if (punManagerInstance != null)
+                {
+                    var upgradeMethod = punManagerType.GetMethod("UpgradePlayerGrabStrength", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    if (upgradeMethod != null)
+                    {
+                        upgradeMethod.Invoke(punManagerInstance, new object[] { steamID });
+                        Hax2.Log1($"Called PunManager.UpgradePlayerGrabStrength for steamID: {steamID}");
+                    }
+                    else
+                    {
+                        Hax2.Log1("UpgradePlayerGrabStrength method not found in PunManager.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1("PunManager instance not found.");
+                }
+            }
+            else
+            {
+                Hax2.Log1("PunManager type not found.");
             }
         }
 

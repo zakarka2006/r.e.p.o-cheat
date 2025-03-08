@@ -253,24 +253,69 @@ namespace r.e.p.o_cheat
 
         private void ReviveSelectedPlayer()
         {
-            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count) { Log1("Índice de jogador inválido!"); return; }
-            var selectedPlayer = playerList[selectedPlayerIndex];
-            if (selectedPlayer == null) { Log1("Jogador selecionado é nulo!"); return; }
-            var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", BindingFlags.Public | BindingFlags.Instance);
-            if (playerDeathHeadField != null)
+            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
             {
-                var playerDeathHeadInstance = playerDeathHeadField.GetValue(selectedPlayer);
-                if (playerDeathHeadInstance != null)
-                {
-                    var inExtractionPointField = playerDeathHeadInstance.GetType().GetField("inExtractionPoint", BindingFlags.NonPublic | BindingFlags.Instance);
-                    var reviveMethod = playerDeathHeadInstance.GetType().GetMethod("Revive");
-                    if (inExtractionPointField != null) inExtractionPointField.SetValue(playerDeathHeadInstance, true);
-                    reviveMethod?.Invoke(playerDeathHeadInstance, null);
-                    Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
-                }
-                else Log1("Instância de playerDeathHead não encontrada.");
+                Log1("Índice de jogador inválido!");
+                return;
             }
-            else Log1("Campo playerDeathHead não encontrado.");
+            var selectedPlayer = playerList[selectedPlayerIndex];
+            if (selectedPlayer == null)
+            {
+                Log1("Jogador selecionado é nulo!");
+                return;
+            }
+
+            try
+            {
+                var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", BindingFlags.Public | BindingFlags.Instance);
+                if (playerDeathHeadField != null)
+                {
+                    var playerDeathHeadInstance = playerDeathHeadField.GetValue(selectedPlayer);
+                    if (playerDeathHeadInstance != null)
+                    {
+                        var inExtractionPointField = playerDeathHeadInstance.GetType().GetField("inExtractionPoint", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var reviveMethod = playerDeathHeadInstance.GetType().GetMethod("Revive");
+                        if (inExtractionPointField != null)
+                            inExtractionPointField.SetValue(playerDeathHeadInstance, true);
+                        reviveMethod?.Invoke(playerDeathHeadInstance, null);
+                        Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
+
+                        var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (playerHealthField != null)
+                        {
+                            var playerHealthInstance = playerHealthField.GetValue(selectedPlayer);
+                            if (playerHealthInstance != null)
+                            {
+                                var healthType = playerHealthInstance.GetType();
+                                var maxHealthField = healthType.GetField("maxHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
+                                Health_Player.HealPlayer(selectedPlayer, maxHealth, playerNames[selectedPlayerIndex]);
+                                Log1($"Jogador curado para {maxHealth} HP após reviver.");
+                            }
+                            else
+                            {
+                                Log1("Instância de playerHealth é nula, cura não realizada.");
+                            }
+                        }
+                        else
+                        {
+                            Log1("Campo 'playerHealth' não encontrado, cura não realizada.");
+                        }
+                    }
+                    else
+                    {
+                        Log1("Instância de playerDeathHead não encontrada.");
+                    }
+                }
+                else
+                {
+                    Log1("Campo playerDeathHead não encontrado.");
+                }
+            }
+            catch (Exception e)
+            {
+                Log1($"Erro ao reviver e curar {playerNames[selectedPlayerIndex]}: {e.Message}");
+            }
         }
 
         private void KillSelectedPlayer()
@@ -325,7 +370,72 @@ namespace r.e.p.o_cheat
             }
             catch (Exception e) { Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}"); }
         }
+        private void SendSelectedPlayerToVoid()
+        {
+            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
+            {
+                Log1("Índice de jogador inválido!");
+                return;
+            }
+            var selectedPlayer = playerList[selectedPlayerIndex];
+            if (selectedPlayer == null)
+            {
+                Log1("Jogador selecionado é nulo!");
+                return;
+            }
 
+            try
+            {
+                Log1($"Tentando enviar {playerNames[selectedPlayerIndex]} para o void | MasterClient: {PhotonNetwork.IsMasterClient}");
+
+                // Obter o PhotonView
+                var photonViewField = selectedPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (photonViewField == null)
+                {
+                    Log1("PhotonViewField não encontrado!");
+                    return;
+                }
+                var photonView = photonViewField.GetValue(selectedPlayer) as PhotonView;
+                if (photonView == null)
+                {
+                    Log1("PhotonView não é válido!");
+                    return;
+                }
+
+                var playerMono = selectedPlayer as MonoBehaviour;
+                if (playerMono == null)
+                {
+                    Log1("selectedPlayer não é um MonoBehaviour!");
+                    return;
+                }
+
+                var transform = playerMono.transform;
+                if (transform == null)
+                {
+                    Log1("Transform é nulo!");
+                    return;
+                }
+
+                Vector3 voidPosition = new Vector3(0, -10, 0);
+                transform.position = voidPosition;
+                Log1($"Jogador {playerNames[selectedPlayerIndex]} enviado localmente para o void: {voidPosition}");
+
+                // Sincronizar via Photon, se conectado
+                if (PhotonNetwork.IsConnected && photonView != null)
+                {
+                    photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { voidPosition, transform.rotation });
+                    Log1($"RPC 'SpawnRPC' enviado para todos com posição: {voidPosition}");
+                }
+                else
+                {
+                    Log1("Não conectado ao Photon, teleporte apenas local.");
+                }
+            }
+            catch (Exception e)
+            {
+                Log1($"Erro ao enviar {playerNames[selectedPlayerIndex]} para o void: {e.Message}");
+            }
+        }
         public void OnGUI()
         {
             if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool) DebugCheats.DrawESP();
@@ -351,7 +461,7 @@ namespace r.e.p.o_cheat
                         UpdatePlayerList();
                         UIHelper.Label("Select a player:", 70, 160);
 
-                        playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 440, 150), playerScrollPosition, new Rect(0, 0, 420, playerNames.Count * 35));
+                        playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 440, 150), playerScrollPosition, new Rect(0, 0, 420, playerNames.Count * 35), false, true);
                         for (int i = 0; i < playerNames.Count; i++)
                         {
                             if (i == selectedPlayerIndex)
@@ -423,7 +533,7 @@ namespace r.e.p.o_cheat
                         UpdatePlayerList();
                         UIHelper.Label("Select a player:", 70, 160);
 
-                        playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 440, 200), playerScrollPosition, new Rect(0, 0, 420, playerNames.Count * 35));
+                        playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 440, 200), playerScrollPosition, new Rect(0, 0, 420, playerNames.Count * 35), false, true);
                         for (int i = 0; i < playerNames.Count; i++)
                         {
                             if (i == selectedPlayerIndex)
@@ -445,18 +555,17 @@ namespace r.e.p.o_cheat
                         if (UIHelper.Button("Revive", 70, 390)) { ReviveSelectedPlayer(); Debug.Log("Player revived: " + playerNames[selectedPlayerIndex]); }
                         if (UIHelper.Button("Kill Selected Player", 70, 430)) { KillSelectedPlayer(); Debug.Log("Tentativa de matar o jogador selecionado realizada."); }
                         if (UIHelper.Button("Kill All Enemies", 70, 470)) DebugCheats.KillAllEnemies();
+                        if (UIHelper.Button("Send Player To Void", 70, 510)) SendSelectedPlayerToVoid();
                         break;
 
                     case MenuCategory.Misc:
                         if (UIHelper.Button("Spawn Money", 70, 160)) { DebugCheats.SpawnItem(); Debug.Log("Money spawned."); }
-                        if (UIHelper.Button("Send Player To Void", 70, 200)) PlayerController.SendFirstPlayerToVoid();
-                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 70, 240);
+                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 70, 200);
                         if (newPlayerColorState != playerColor.isRandomizing)
                         {
                             playerColor.isRandomizing = newPlayerColorState;
                             Debug.Log("Randomize toggled: " + playerColor.isRandomizing);
                         }
-                        if (UIHelper.Button("Add Fake Player", 70, 280)) { AddFakePlayer(); Debug.Log("Fake player added."); }
                         break;
                 }
             }
