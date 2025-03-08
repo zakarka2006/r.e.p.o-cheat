@@ -12,11 +12,12 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Damage Any Player<br />
 - Infinite Health<br />
 - Infinity Stamina<br />
+- Change Strength<br />
 - Revive Selected Player<br />
 - Kill Selected Player<br />
 - God Mode<br />
 - Send Selected Player To Void (not working yet)<br />
-- Kill ALl Enemies<br />
+- Kill All Enemies<br />
 - Spawn MoneyBag<br />
 - Change Speed <br />
 - Enemy Esp<br />
