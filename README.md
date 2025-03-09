@@ -4,25 +4,42 @@ WARNING: THIS IS A OPEN-SOURCE PROJECT! ITS NOT INTENDED TO BE SOLD OR TO BE THE
 
 Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 
-![Screenshot_3](https://github.com/user-attachments/assets/a080872f-31ab-4aa5-a205-e080a33fc06a)
+![image](https://github.com/user-attachments/assets/f552d59b-9f7c-4801-b6f1-099000043f48)
 
 # **FUNCTIONS (still working on, i will release new versions whenever i add functions):**
+- See Live/Dead Players<br />
+- Select Players<br />
 - Heal  Any Player<br />
-- See Live/Dead Players
 - Damage Any Player<br />
-- Infinite Health<br />
-- Infinity Stamina<br />
-- Change Strength<br />
-- Revive Selected Player<br />
-- Kill Selected Player<br />
-- God Mode<br />
-- Send Selected Player To Void (fixed)<br />
-- Kill All Enemies<br />
-- Spawn MoneyBag<br />
+- Toggle Infinite Health<br />
+- Toggle Infinity Stamina<br />
+- Toggle God Mode<br />
 - Change Speed <br />
+- Change Strength (host side for now)<br />
+- Change Stamina Recharge Delay<br />
+- Change Stamina Recharge Rate<br />
 - Enemy Esp<br />
 - Item Esp<br />
-- Player RGB Skin<br /> (partial contribution from https://github.com/svind1er)
+- Extraction Esp<br />
+- Player Esp<br />
+- Distance ESP<br />
+- Health ESP<br />
+- Name ESP<br />
+- Revive Selected Player<br />
+- Kill Selected Player<br />
+- Send Selected Player To Void<br />
+- Teleport to Player (host for now)<br />
+- Teleport Player to You (host for now)<br />
+- Spawn MoneyBag (not fixed 100% but working)<br />
+- Player RGB Skin (partial contribution from https://github.com/svind1er)<br />
+- Enemie List<br />
+- Enemie Health<br />
+- Kill Selected Enemie<br />
+- Kill All Enemies<br />
+- Item List<br />
+- Teleport Item to You (host side for now)
+
+
 
 # **TO-DO:**
 
