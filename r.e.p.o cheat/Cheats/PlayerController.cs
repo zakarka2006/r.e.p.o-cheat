@@ -10,7 +10,7 @@ namespace r.e.p.o_cheat
         public static object playerSpeedInstance;
         static private object reviveInstance;
         static private object enemyDirectorInstance;
-        private static object playerControllerInstance; // Cache da instância do PlayerController
+        private static object playerControllerInstance; 
         private static Type playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
 
         // Inicializar o cache na primeira chamada
@@ -402,7 +402,6 @@ namespace r.e.p.o_cheat
             }
         }
 
-        // Função para diminuir o delay da recarga da stamina
         public static void DecreaseStaminaRechargeDelay(float delayMultiplier, float rateMultiplier = 1f)
         {
             InitializePlayerController();
@@ -410,12 +409,11 @@ namespace r.e.p.o_cheat
 
             Hax2.Log1("Attempting to decrease stamina recharge delay.");
 
-            // Acessar sprintRechargeTime (atraso antes de começar a recarga)
             var sprintRechargeTimeField = playerControllerType.GetField("sprintRechargeTime", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (sprintRechargeTimeField != null)
             {
-                float defaultRechargeTime = 1f; // Valor padrão do jogo
-                float newRechargeTime = defaultRechargeTime * delayMultiplier; // Multiplicador < 1 reduz o delay
+                float defaultRechargeTime = 1f;
+                float newRechargeTime = defaultRechargeTime * delayMultiplier;
                 sprintRechargeTimeField.SetValue(playerControllerInstance, newRechargeTime);
                 Hax2.Log1($"sprintRechargeTime set to {newRechargeTime} (multiplier: {delayMultiplier})");
             }
@@ -424,12 +422,11 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("sprintRechargeTime field not found in PlayerController.");
             }
 
-            // Acessar sprintRechargeAmount (taxa de recarga por segundo)
             var sprintRechargeAmountField = playerControllerType.GetField("sprintRechargeAmount", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (sprintRechargeAmountField != null)
             {
-                float defaultRechargeAmount = 2f; // Valor padrão do jogo
-                float newRechargeAmount = defaultRechargeAmount * rateMultiplier; // Multiplicador > 1 aumenta a taxa
+                float defaultRechargeAmount = 2f;
+                float newRechargeAmount = defaultRechargeAmount * rateMultiplier;
                 sprintRechargeAmountField.SetValue(playerControllerInstance, newRechargeAmount);
                 Hax2.Log1($"sprintRechargeAmount set to {newRechargeAmount} (multiplier: {rateMultiplier})");
             }

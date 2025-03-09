@@ -19,24 +19,24 @@ namespace r.e.p.o_cheat
         private static float scaleX, scaleY;
         public static Texture2D texture2;
         private static float lastUpdateTime = 0f;
-        private static float lastExtractionUpdateTime = 0f; // Separado para Extraction Points
+        private static float lastExtractionUpdateTime = 0f;
         private const float updateInterval = 1f;
-        private const float extractionUpdateInterval = 5f; // Atualizar a cada 5 segundos
+        private const float extractionUpdateInterval = 5f;
         private static GameObject localPlayer;
         private static List<ExtractionPointData> extractionPointList = new List<ExtractionPointData>();
 
         public static bool drawEspBool = false;
         public static bool drawItemEspBool = false;
         public static bool drawPlayerEspBool = false;
+        public static bool draw3DItemEspBool = false;
         public static bool draw3DPlayerEspBool = false;
         public static bool drawExtractionPointEspBool = false;
 
-        // Novas variáveis para controle de exibição
         public static bool showEnemyNames = true;
         public static bool showEnemyDistance = true;
         public static bool showItemNames = true;
         public static bool showItemValue = true;
-        public static bool showItemDistance = false; // Padrão false para itens
+        public static bool showItemDistance = false;
         public static bool showExtractionNames = true;
         public static bool showExtractionDistance = true;
         public static bool showPlayerNames = true;
@@ -45,9 +45,9 @@ namespace r.e.p.o_cheat
 
         private static List<PlayerData> playerDataList = new List<PlayerData>();
         private static float lastPlayerUpdateTime = 0f;
-        private static float playerUpdateInterval = 1f; // Atualizar a cada 1 segundo
-        private static Dictionary<int, int> playerHealthCache = new Dictionary<int, int>(); // Cache de saúde por PhotonView ID
-        private const float maxEspDistance = 100f; // Distância máxima para exibir ESP
+        private static float playerUpdateInterval = 1f;
+        private static Dictionary<int, int> playerHealthCache = new Dictionary<int, int>();
+        private const float maxEspDistance = 100f;
 
         public class PlayerData
         {
@@ -63,7 +63,7 @@ namespace r.e.p.o_cheat
                 PhotonView = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(player) as PhotonView;
                 Transform = player.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(player) as Transform;
                 Name = (player as PlayerAvatar) != null ? (SemiFunc.PlayerGetName(player as PlayerAvatar) ?? "Unknown Player") : "Unknown Player";
-                IsAlive = true; // Inicialmente assumimos vivo, atualizado depois
+                IsAlive = true;
             }
         }
         static DebugCheats()
@@ -202,30 +202,18 @@ namespace r.e.p.o_cheat
 
         private static void UpdateLocalPlayer()
         {
-            var players = SemiFunc.PlayerGetList();
-            if (players != null)
+            localPlayer = GetLocalPlayer();
+            if (localPlayer != null)
             {
-                foreach (var player in players)
-                {
-                    var photonViewField = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (photonViewField != null)
-                    {
-                        var photonView = photonViewField.GetValue(player) as PhotonView;
-                        if (photonView != null && photonView.IsMine)
-                        {
-                            var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
-                            localPlayer = gameObjectProperty != null ? (gameObjectProperty.GetValue(player) as GameObject) : photonView.gameObject;
-                            Hax2.Log1("Jogador local atualizado: " + localPlayer.name);
-                            return;
-                        }
-                    }
-                }
+                Hax2.Log1("Jogador local atualizado com sucesso: " + localPlayer.name);
             }
-            Hax2.Log1("Nenhum jogador local encontrado para atualizar.");
+            else
+            {
+                Hax2.Log1("Falha ao atualizar jogador local!");
+            }
         }
 
 
-        // DebugCheats.cs
 
         public static GameObject GetLocalPlayer()
         {
@@ -245,10 +233,11 @@ namespace r.e.p.o_cheat
                                 var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
                                 if (gameObjectProperty != null)
                                 {
-                                    Hax2.Log1("Local player found via Photon: " + (gameObjectProperty.GetValue(player) as GameObject).name);
-                                    return gameObjectProperty.GetValue(player) as GameObject;
+                                    GameObject foundPlayer = gameObjectProperty.GetValue(player) as GameObject;
+                                    Hax2.Log1("Local player encontrado via Photon: " + foundPlayer.name);
+                                    return foundPlayer;
                                 }
-                                Hax2.Log1("Local player found via PhotonView: " + photonView.gameObject.name);
+                                Hax2.Log1("Local player encontrado via PhotonView: " + photonView.gameObject.name);
                                 return photonView.gameObject;
                             }
                         }
@@ -261,34 +250,34 @@ namespace r.e.p.o_cheat
                     {
                         if (photonView.Owner == PhotonNetwork.LocalPlayer && photonView.IsMine)
                         {
-                            Hax2.Log1("Local player found via Photon fallback: " + photonView.gameObject.name);
+                            Hax2.Log1("Local player encontrado via Photon fallback: " + photonView.gameObject.name);
                             return photonView.gameObject;
                         }
                     }
                 }
             }
-            else
+            else 
             {
                 var players = SemiFunc.PlayerGetList();
                 if (players != null && players.Count > 0)
                 {
-                    var player = players[0];
+                    var player = players[0]; 
                     var gameObjectProperty = player.GetType().GetProperty("gameObject", BindingFlags.Public | BindingFlags.Instance);
                     if (gameObjectProperty != null)
                     {
-                        var localPlayer = gameObjectProperty.GetValue(player) as GameObject;
-                        Hax2.Log1("Local player found in singleplayer via PlayerGetList: " + localPlayer.name);
-                        return localPlayer;
+                        GameObject foundPlayer = gameObjectProperty.GetValue(player) as GameObject;
+                        Hax2.Log1("Local player encontrado em singleplayer via PlayerGetList: " + foundPlayer.name);
+                        return foundPlayer;
                     }
                 }
 
                 var playerAvatarType = Type.GetType("PlayerAvatar, Assembly-CSharp");
                 if (playerAvatarType != null)
                 {
-                    var playerAvatar = GameHelper.FindObjectOfType(playerAvatarType) as MonoBehaviour;
+                    var playerAvatar = UnityEngine.Object.FindObjectOfType(playerAvatarType) as MonoBehaviour;
                     if (playerAvatar != null)
                     {
-                        Hax2.Log1("Local player found in singleplayer via PlayerAvatar: " + playerAvatar.gameObject.name);
+                        Hax2.Log1("Local player encontrado em singleplayer via PlayerAvatar: " + playerAvatar.gameObject.name);
                         return playerAvatar.gameObject;
                     }
                 }
@@ -296,11 +285,21 @@ namespace r.e.p.o_cheat
                 var playerByTag = GameObject.FindWithTag("Player");
                 if (playerByTag != null)
                 {
-                    Hax2.Log1("Local player found in singleplayer via tag 'Player': " + playerByTag.name);
+                    Hax2.Log1("Local player encontrado em singleplayer via tag 'Player': " + playerByTag.name);
                     return playerByTag;
                 }
 
-                Hax2.Log1("Nenhum jogador local encontrado no singleplayer!");
+                var allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
+                foreach (var obj in allObjects)
+                {
+                    if (obj.name.Contains("Player") && obj.activeInHierarchy)
+                    {
+                        Hax2.Log1("Local player encontrado em singleplayer via nome genérico: " + obj.name);
+                        return obj;
+                    }
+                }
+
+                Hax2.Log1("Nenhum jogador local encontrado no singleplayer após todas as tentativas!");
                 return null;
             }
 
@@ -389,14 +388,14 @@ namespace r.e.p.o_cheat
             Vector3 min = bounds.min;
             Vector3 max = bounds.max;
 
-            vertices[0] = new Vector3(min.x, min.y, min.z); // Canto inferior esquerdo frontal
-            vertices[1] = new Vector3(max.x, min.y, min.z); // Canto inferior direito frontal
-            vertices[2] = new Vector3(max.x, min.y, max.z); // Canto inferior direito traseiro
-            vertices[3] = new Vector3(min.x, min.y, max.z); // Canto inferior esquerdo traseiro
-            vertices[4] = new Vector3(min.x, max.y, min.z); // Canto superior esquerdo frontal
-            vertices[5] = new Vector3(max.x, max.y, min.z); // Canto superior direito frontal
-            vertices[6] = new Vector3(max.x, max.y, max.z); // Canto superior direito traseiro
-            vertices[7] = new Vector3(min.x, max.y, max.z); // Canto superior esquerdo traseiro
+            vertices[0] = new Vector3(min.x, min.y, min.z);
+            vertices[1] = new Vector3(max.x, min.y, min.z);
+            vertices[2] = new Vector3(max.x, min.y, max.z);
+            vertices[3] = new Vector3(min.x, min.y, max.z);
+            vertices[4] = new Vector3(min.x, max.y, min.z);
+            vertices[5] = new Vector3(max.x, max.y, min.z);
+            vertices[6] = new Vector3(max.x, max.y, max.z);
+            vertices[7] = new Vector3(min.x, max.y, max.z);
 
             Vector2[] screenVertices = new Vector2[8];
             bool isVisible = false;
@@ -434,10 +433,10 @@ namespace r.e.p.o_cheat
             float angle = Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg;
 
             GUI.color = color;
-            Matrix4x4 originalMatrix = GUI.matrix; // Salvar estado da GUI
+            Matrix4x4 originalMatrix = GUI.matrix;
             GUIUtility.RotateAroundPivot(angle, start);
             GUI.DrawTexture(new Rect(start.x, start.y, distance, 1f), texture2);
-            GUI.matrix = originalMatrix; // Restaurar estado da GUI
+            GUI.matrix = originalMatrix;
             GUI.color = Color.white;
         }
 
@@ -479,12 +478,15 @@ namespace r.e.p.o_cheat
         }
         public static void DrawESP()
         {
-            if (!drawEspBool && !drawItemEspBool && !drawExtractionPointEspBool && !drawPlayerEspBool && !draw3DPlayerEspBool) return;
-
+            if (!drawEspBool && !drawItemEspBool && !drawExtractionPointEspBool && !drawPlayerEspBool && !draw3DPlayerEspBool && !draw3DItemEspBool) return;
+            if (localPlayer == null)
+            {
+                UpdateLocalPlayer();
+            }
             if (Time.time - lastUpdateTime > updateInterval)
             {
                 UpdatePlayerDataList();
-                if (drawEspBool || drawItemEspBool || drawExtractionPointEspBool || drawPlayerEspBool || draw3DPlayerEspBool)
+                if (drawEspBool || drawItemEspBool || drawExtractionPointEspBool || drawPlayerEspBool || draw3DPlayerEspBool || draw3DItemEspBool)
                 {
                     UpdateLists();
                 }
@@ -507,7 +509,6 @@ namespace r.e.p.o_cheat
             scaleX = (float)Screen.width / cachedCamera.pixelWidth;
             scaleY = (float)Screen.height / cachedCamera.pixelHeight;
 
-            // Enemy ESP
             if (drawEspBool)
             {
                 GUIStyle enemyStyle = new GUIStyle(GUI.skin.label)
@@ -567,8 +568,9 @@ namespace r.e.p.o_cheat
                             distanceText = $" [{distance2:F1}m]";
                         }
 
-                        string fullText = (showEnemyNames ? enemyName : "") + (showEnemyDistance ? distanceText : "");
-                        if (string.IsNullOrEmpty(fullText)) continue;
+                        string fullText = "";
+                        if (showEnemyNames) fullText = enemyName;
+                        if (showEnemyDistance) fullText += distanceText;
 
                         float labelHeight = enemyStyle.CalcHeight(new GUIContent(fullText), labelWidth);
                         float labelY = y - height - labelHeight;
@@ -578,7 +580,6 @@ namespace r.e.p.o_cheat
                 }
             }
 
-            // Item ESP
             if (drawItemEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
@@ -648,14 +649,16 @@ namespace r.e.p.o_cheat
                             distanceText = $" [{distance:F1}m]";
                         }
 
+                        string nameText = showItemNames ? itemName : "";
+                        if (showItemDistance) nameText += distanceText;
+
                         float labelWidth = 150f;
                         float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(itemValue.ToString() + "$"), labelWidth);
-                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(itemName + distanceText), labelWidth);
+                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(nameText), labelWidth);
                         float totalHeight = nameLabelHeight + valueLabelHeight + 5f;
                         float labelX = x - labelWidth / 2f;
                         float labelY = y - totalHeight - 5f;
 
-                        string nameText = (showItemNames ? itemName : "") + (showItemDistance ? distanceText : "");
                         if (!string.IsNullOrEmpty(nameText))
                         {
                             GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameText, nameStyle);
@@ -665,13 +668,15 @@ namespace r.e.p.o_cheat
                             GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
                         }
 
-                        Bounds bounds = GetActiveColliderBounds(transform.gameObject);
-                        CreateBoundsEdges(bounds, Color.yellow);
+                        if (draw3DItemEspBool)
+                        {
+                            Bounds bounds = GetActiveColliderBounds(transform.gameObject);
+                            CreateBoundsEdges(bounds, Color.yellow);
+                        }
                     }
                 }
             }
 
-            // Extraction Point ESP
             if (drawExtractionPointEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
@@ -702,36 +707,30 @@ namespace r.e.p.o_cheat
                         float x = screenPos.x * scaleX;
                         float y = Screen.height - (screenPos.y * scaleY);
 
-                        string pointName = showExtractionNames ? "Extraction Point" : "";
-                        string stateText = showExtractionNames ? $" ({epData.CachedState})" : "";
-                        string distanceText = "";
-                        if (showExtractionDistance && localPlayer != null)
-                        {
-                            distanceText = $"{Vector3.Distance(localPlayer.transform.position, epData.CachedPosition):F1}m";
-                        }
+                        string pointName = "Extraction Point";
+                        string stateText = $" ({epData.CachedState})";
+                        string distanceText = showExtractionDistance && localPlayer != null ? $"{Vector3.Distance(localPlayer.transform.position, epData.CachedPosition):F1}m" : "";
 
                         nameStyle.normal.textColor = epData.CachedState == "Active" ? Color.green : (epData.CachedState == "Idle" ? Color.red : Color.cyan);
 
+                        string nameFullText = showExtractionNames ? pointName + stateText : "";
+                        if (showExtractionDistance) nameFullText += " " + distanceText;
+
                         float labelWidth = 150f;
-                        float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(distanceText), labelWidth);
-                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(pointName + stateText), labelWidth);
-                        float totalHeight = nameLabelHeight + (showExtractionDistance ? valueLabelHeight + 5f : 0f);
+                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(nameFullText), labelWidth);
+                        float totalHeight = nameLabelHeight;
                         float labelX = x - labelWidth / 2f;
                         float labelY = y - totalHeight - 5f;
 
-                        if (showExtractionNames)
+                        if (!string.IsNullOrEmpty(nameFullText))
                         {
-                            GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), pointName + stateText, nameStyle);
-                        }
-                        if (showExtractionDistance && !string.IsNullOrEmpty(distanceText))
-                        {
-                            GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), distanceText, valueStyle);
+                            GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameFullText, nameStyle);
                         }
                     }
                 }
             }
 
-            // Player ESPif (drawPlayerEspBool || draw3DPlayerEspBool)
+            if (drawPlayerEspBool || draw3DPlayerEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
                 {
@@ -761,7 +760,12 @@ namespace r.e.p.o_cheat
 
                 foreach (var playerData in playerDataList)
                 {
-                    if (playerData.PhotonView == null || playerData.PhotonView.IsMine || !playerData.Transform.gameObject.activeInHierarchy) continue;
+                    bool isLocalPlayer = false;
+                    if (!PhotonNetwork.IsConnected && localPlayer != null && playerData.Transform.gameObject == localPlayer)
+                    {
+                        isLocalPlayer = true;
+                    }
+                    if (playerData.PhotonView == null || (playerData.PhotonView.IsMine && PhotonNetwork.IsConnected) || isLocalPlayer || !playerData.Transform.gameObject.activeInHierarchy) continue;
 
                     Vector3 playerPos = playerData.Transform.position;
                     float distanceToPlayer = localPlayer != null ? Vector3.Distance(localPlayer.transform.position, playerPos) : float.MaxValue;
@@ -775,28 +779,16 @@ namespace r.e.p.o_cheat
                     Vector3 screenHeadPos = cachedCamera.WorldToScreenPoint(headPosition);
                     bool isInFront = screenFootPos.z > 0 && screenHeadPos.z > 0;
 
-                    float footX, footY, headY, width, height;
-                    if (isInFront)
-                    {
-                        footX = screenFootPos.x * scaleX;
-                        footY = Screen.height - (screenFootPos.y * scaleY);
-                        headY = Screen.height - (screenHeadPos.y * scaleY);
-                    }
-                    else
-                    {
-                        // Projeta para a borda da tela se estiver atrás
-                        Vector3 directionToPlayer = (playerPos - cachedCamera.transform.position).normalized;
-                        Vector3 projectedPos = cachedCamera.transform.position + directionToPlayer * 5f; // Distância arbitrária para borda
-                        Vector3 screenProjectedPos = cachedCamera.WorldToScreenPoint(projectedPos);
-                        footX = Mathf.Clamp(screenProjectedPos.x * scaleX, 0, Screen.width);
-                        footY = Mathf.Clamp(Screen.height - (screenProjectedPos.y * scaleY), 0, Screen.height);
-                        headY = footY - 50f; // Aproximação para altura
-                    }
+                    if (!isInFront) continue;
 
-                    height = Mathf.Abs(footY - headY);
+                    float footX = screenFootPos.x * scaleX;
+                    float footY = Screen.height - (screenFootPos.y * scaleY);
+                    float headY = Screen.height - (screenHeadPos.y * scaleY);
+
+                    float height = Mathf.Abs(footY - headY);
                     float playerScale = playerData.Transform.localScale.y;
                     float baseWidth = playerScale * 200f;
-                    width = (baseWidth / (distanceToPlayer + 1f)) * scaleX; // +1f para evitar divisão por zero
+                    float width = (baseWidth / (distanceToPlayer + 1f)) * scaleX;
                     width = Mathf.Clamp(width, 30f, height * 1.2f);
                     height = Mathf.Clamp(height, 40f, 400f);
 
@@ -808,37 +800,32 @@ namespace r.e.p.o_cheat
                         Bounds bounds = GetActiveColliderBounds(playerData.Transform.gameObject);
                         CreateBoundsEdges(bounds, Color.red);
                     }
-                    else if (drawPlayerEspBool)
+                    if (drawPlayerEspBool)
                     {
                         Box(x, y, width, height, texture2, 2f);
                     }
-
 
                     int health = playerHealthCache.ContainsKey(playerData.PhotonView.ViewID) ? playerHealthCache[playerData.PhotonView.ViewID] : 100;
                     string healthText = $"HP: {health}";
                     string distanceText = showPlayerDistance && localPlayer != null ? $"{distanceToPlayer:F1}m" : "";
 
+                    string nameFullText = showPlayerNames ? playerData.Name : "";
+                    if (showPlayerDistance) nameFullText += " " + distanceText;
 
                     float labelWidth = 150f;
-                    float nameHeight = showPlayerNames ? nameStyle.CalcHeight(new GUIContent(playerData.Name), labelWidth) : 0f;
+                    float nameHeight = nameStyle.CalcHeight(new GUIContent(nameFullText), labelWidth);
                     float healthHeight = healthStyle.CalcHeight(new GUIContent(healthText), labelWidth);
-                    float distanceHeight = showPlayerDistance ? distanceStyle.CalcHeight(new GUIContent(distanceText), labelWidth) : 0f;
+                    float totalHeight = nameHeight + (showPlayerHP ? healthHeight + 2f : 0f);
+                    float labelX = footX - labelWidth / 2f;
+                    float labelY = footY - height - totalHeight - 10f;
 
-                    float totalHeight = nameHeight + healthHeight + (showPlayerDistance ? distanceHeight + 4f : 0f);
-                    float labelX = x - labelWidth / 2f;
-                    float labelY = y - height - totalHeight - 10f;
-
-                    if (showPlayerNames)
+                    if (!string.IsNullOrEmpty(nameFullText))
                     {
-                        GUI.Label(new Rect(labelX, labelY, labelWidth, nameHeight), playerData.Name, nameStyle);
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, nameHeight), nameFullText, nameStyle);
                     }
                     if (showPlayerHP)
                     {
                         GUI.Label(new Rect(labelX, labelY + nameHeight + 2f, labelWidth, healthHeight), healthText, healthStyle);
-                    }
-                    if (showPlayerDistance && !string.IsNullOrEmpty(distanceText))
-                    {
-                        GUI.Label(new Rect(labelX, labelY + nameHeight + healthHeight + 4f, labelWidth, distanceHeight), distanceText, distanceStyle);
                     }
                 }
             }

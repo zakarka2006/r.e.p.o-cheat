@@ -13,7 +13,6 @@ public class ItemSync : MonoBehaviour, IPunInstantiateMagicCallback, IPunObserva
 
     public void OnPhotonInstantiate(PhotonMessageInfo info)
     {
-        // Recebe a posição inicial enviada
         object[] data = info.photonView.InstantiationData;
         if (data != null && data.Length == 3)
         {
@@ -26,7 +25,6 @@ public class ItemSync : MonoBehaviour, IPunInstantiateMagicCallback, IPunObserva
             Debug.LogWarning("Dados de instanciação ausentes ou inválidos!");
         }
 
-        // Nos clientes remotos, desativa a física local
         if (!info.photonView.IsMine)
         {
             if (rb != null)
@@ -41,7 +39,6 @@ public class ItemSync : MonoBehaviour, IPunInstantiateMagicCallback, IPunObserva
     {
         if (stream.IsWriting)
         {
-            // Envia os dados de posição e rotação do objeto
             stream.SendNext(transform.position);
             stream.SendNext(transform.rotation);
             if (rb != null)
@@ -52,7 +49,6 @@ public class ItemSync : MonoBehaviour, IPunInstantiateMagicCallback, IPunObserva
         }
         else
         {
-            // Recebe os dados de posição e rotação do objeto
             transform.position = (Vector3)stream.ReceiveNext();
             transform.rotation = (Quaternion)stream.ReceiveNext();
             if (rb != null)

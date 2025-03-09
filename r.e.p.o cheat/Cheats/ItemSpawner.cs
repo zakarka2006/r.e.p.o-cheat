@@ -14,19 +14,16 @@ public class ItemSpawner : MonoBehaviourPunCallbacks
             return;
         }
 
-        // Passa a posição inicial como dados de instanciação
         object[] instantiationData = new object[] { position.x, position.y, position.z };
         var spawnedItem = PhotonNetwork.Instantiate("Valuables/" + AssetManager.instance.surplusValuableSmall.name,
                                                   position, Quaternion.identity, 0, instantiationData);
         Debug.Log("Item spawnado na posição: " + position);
 
-        // Configura os componentes de sincronização no item spawnado
         ConfigureSyncComponents(spawnedItem);
     }
 
     private static void ConfigureSyncComponents(GameObject item)
     {
-        // Garante que o PhotonView existe
         PhotonView pv = item.GetComponent<PhotonView>();
         if (pv == null)
         {
@@ -35,7 +32,6 @@ public class ItemSpawner : MonoBehaviourPunCallbacks
             Debug.Log("PhotonView adicionado ao item: " + pv.ViewID);
         }
 
-        // Adiciona e configura PhotonTransformView para sincronizar posição, rotação e escala
         PhotonTransformView transformView = item.GetComponent<PhotonTransformView>();
         if (transformView == null)
         {
@@ -43,7 +39,6 @@ public class ItemSpawner : MonoBehaviourPunCallbacks
             Debug.Log("PhotonTransformView adicionado ao item");
         }
 
-        // Adiciona e configura PhotonRigidbodyView para sincronizar a física do objeto
         Rigidbody rb = item.GetComponent<Rigidbody>();
         if (rb != null)
         {
@@ -57,13 +52,11 @@ public class ItemSpawner : MonoBehaviourPunCallbacks
             }
         }
 
-        // Adiciona o ItemSync para inicialização e diagnóstico
         if (item.GetComponent<ItemSync>() == null)
         {
             item.AddComponent<ItemSync>();
         }
 
-        // Configura o PhotonView para observar os componentes de sincronização
         pv.ObservedComponents = new List<Component> { transformView };
         if (rb != null)
         {

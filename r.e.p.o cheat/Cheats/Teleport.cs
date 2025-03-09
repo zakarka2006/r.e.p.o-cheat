@@ -8,7 +8,6 @@ namespace r.e.p.o_cheat
 {
     public static class Teleport
     {
-        // Teleportar o jogador selecionado até o jogador local
         public static void TeleportPlayerToMe(int selectedPlayerIndex, List<object> playerList, List<string> playerNames)
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
@@ -59,7 +58,7 @@ namespace r.e.p.o_cheat
                     return;
                 }
 
-                Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f; // Levanta um pouco para evitar colisão
+                Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
                 transform.position = targetPosition;
                 Hax2.Log1($"Jogador {playerNames[selectedPlayerIndex]} teleportado localmente para {targetPosition}");
 
@@ -79,7 +78,6 @@ namespace r.e.p.o_cheat
             }
         }
 
-        // Teleportar o jogador local até o jogador selecionado
         public static void TeleportMeToPlayer(int selectedPlayerIndex, List<object> playerList, List<string> playerNames)
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
@@ -130,7 +128,7 @@ namespace r.e.p.o_cheat
                     return;
                 }
 
-                Vector3 targetPosition = targetTransform.position + Vector3.up * 1.5f; // Levanta um pouco para evitar colisão
+                Vector3 targetPosition = targetTransform.position + Vector3.up * 1.5f;
                 localPlayer.transform.position = targetPosition;
                 Hax2.Log1($"Você foi teleportado localmente para {playerNames[selectedPlayerIndex]} em {targetPosition}");
 

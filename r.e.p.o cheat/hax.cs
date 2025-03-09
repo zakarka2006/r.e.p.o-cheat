@@ -49,7 +49,7 @@ namespace r.e.p.o_cheat
         public static void BeginDebugMenu(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
         {
             debugX = _x; debugY = _y; debugWidth = _width; debugHeight = _height; debugMargin = _margin; debugControlHeight = _controlHeight; debugControlDist = _controlDist;
-            debugNextControlY = debugY + debugMargin + 30; // Espaço inicial para o título e instrução
+            debugNextControlY = debugY + debugMargin + 30;
             GUI.Box(new Rect(debugX, debugY, debugWidth, debugHeight), text);
             if (debugLabelStyle == null)
             {
@@ -57,8 +57,8 @@ namespace r.e.p.o_cheat
                 {
                     wordWrap = true,
                     clipping = TextClipping.Clip,
-                    fontSize = 12, // Tamanho menor para compactar
-                    padding = new RectOffset(2, 2, 2, 2) // Menos padding interno
+                    fontSize = 12,
+                    padding = new RectOffset(2, 2, 2, 2)
                 };
             }
         }
@@ -87,14 +87,13 @@ namespace r.e.p.o_cheat
         private static Rect NextDebugControlRect()
         {
             float controlX = debugX + debugMargin + debugCurrentColumn * (debugWidth / debugColumns);
-            float controlY = debugNextControlY; // Usar debugNextControlY diretamente
+            float controlY = debugNextControlY;
             Rect rect = new Rect(controlX, controlY, debugWidth - debugMargin * 2, debugControlHeight);
             debugCurrentColumn++;
             if (debugCurrentColumn >= debugColumns)
             {
                 debugCurrentColumn = 0;
                 debugCurrentRow++;
-                // Incrementar debugNextControlY apenas após calcular a altura real no DebugLabel
             }
             return rect;
         }
@@ -103,7 +102,6 @@ namespace r.e.p.o_cheat
             return GUI.Button(NextControlRect(customX, customY), text);
         }
 
-        // Nova sobrecarga com largura e altura
         public static bool Button(string text, float customX, float customY, float width, float height)
         {
             Rect rect = new Rect(customX, customY, width, height);
@@ -116,10 +114,9 @@ namespace r.e.p.o_cheat
         {
             Rect rect = NextDebugControlRect();
             float textHeight = debugLabelStyle.CalcHeight(new GUIContent(text), rect.width);
-            rect.height = Mathf.Max(textHeight, debugControlHeight); // Garantir altura mínima
+            rect.height = Mathf.Max(textHeight, debugControlHeight); 
             GUI.Label(rect, text, debugLabelStyle);
-            // Atualizar debugNextControlY com base na altura real da label + um pequeno espaçamento
-            debugNextControlY = rect.y + rect.height + 5; // 5 é o novo espaçamento reduzido
+            debugNextControlY = rect.y + rect.height + 5;
         }
 
         public static void ResetGrid() { currentColumn = 0; currentRow = 0; nextControlY = y + margin + 60; }
@@ -134,9 +131,9 @@ namespace r.e.p.o_cheat
         private int selectedPlayerIndex = 0;
         private List<string> playerNames = new List<string>();
         private List<object> playerList = new List<object>();
-        private int selectedEnemyIndex = 0; // Novo: índice do inimigo selecionado
-        private List<string> enemyNames = new List<string>(); // Novo: lista de nomes dos inimigos com vida
-        private List<Enemy> enemyList = new List<Enemy>(); // Novo: lista de inimigos
+        private int selectedEnemyIndex = 0;
+        private List<string> enemyNames = new List<string>();
+        private List<Enemy> enemyList = new List<Enemy>();
         private float oldSliderValue = 0.5f;
         private float oldSliderValueStrength = 0.5f;
         private float sliderValue = 0.5f;
@@ -149,22 +146,21 @@ namespace r.e.p.o_cheat
         public static List<DebugLogMessage> debugLogMessages = new List<DebugLogMessage>();
         private bool showDebugMenu = false;
         private Vector2 playerScrollPosition = Vector2.zero;
-        private Vector2 enemyScrollPosition = Vector2.zero; // Novo: posição de rolagem para a lista de inimigos
+        private Vector2 enemyScrollPosition = Vector2.zero;
 
-        private enum MenuCategory { Player, ESP, Combat, Misc, Enemies, Items } // Adicionado "Enemies"
+        private enum MenuCategory { Player, ESP, Combat, Misc, Enemies, Items }
         private MenuCategory currentCategory = MenuCategory.Player;
 
-        public static float staminaRechargeDelay = 1f; // Multiplicador do atraso
-        public static float staminaRechargeRate = 1f;  // Multiplicador da taxa
-        public static float oldStaminaRechargeDelay = 1f;    // Valor anterior do delay
-        public static float oldStaminaRechargeRate = 1f;     // Valor anterior da taxa
+        public static float staminaRechargeDelay = 1f;
+        public static float staminaRechargeRate = 1f;
+        public static float oldStaminaRechargeDelay = 1f;
+        public static float oldStaminaRechargeRate = 1f;
 
         private List<ItemTeleport.GameItem> itemList = new List<ItemTeleport.GameItem>();
         private int selectedItemIndex = 0;
         private Vector2 itemScrollPosition = Vector2.zero;
         private float lastItemListUpdateTime = 0f;
-        private const float itemListUpdateInterval = 2f; // Atualiza a cada 2 segundos
-
+        private const float itemListUpdateInterval = 2f; 
         public void Start()
         {
             Cursor.visible = showMenu;
@@ -200,7 +196,7 @@ namespace r.e.p.o_cheat
             }
             if (Time.time - lastItemListUpdateTime > itemListUpdateInterval)
             { 
-                UpdateItemList(); // Chama função para atualizar a lista
+                UpdateItemList();
                 itemList = ItemTeleport.GetItemList();
                 lastItemListUpdateTime = Time.time;
             }
@@ -235,7 +231,6 @@ namespace r.e.p.o_cheat
         }
         private void UpdateItemList()
         {
-            // Atualiza DebugCheats.valuableObjects diretamente
             DebugCheats.valuableObjects.Clear();
             var valuableArray = UnityEngine.Object.FindObjectsOfType(Type.GetType("ValuableObject, Assembly-CSharp"));
             if (valuableArray != null)
@@ -243,7 +238,6 @@ namespace r.e.p.o_cheat
                 DebugCheats.valuableObjects.AddRange(valuableArray);
             }
 
-            // Preenche itemList com base em valuableObjects
             itemList = ItemTeleport.GetItemList();
             Hax2.Log1($"Lista de itens atualizada: {itemList.Count} itens encontrados.");
         }
@@ -252,8 +246,8 @@ namespace r.e.p.o_cheat
             enemyNames.Clear();
             enemyList.Clear();
 
-            DebugCheats.UpdateEnemyList(); // Atualiza a lista de inimigos em DebugCheats
-            enemyList = DebugCheats.enemyList; // Usa a lista já atualizada de DebugCheats
+            DebugCheats.UpdateEnemyList(); 
+            enemyList = DebugCheats.enemyList;
 
             foreach (var enemy in enemyList)
             {
@@ -314,7 +308,7 @@ namespace r.e.p.o_cheat
                 else
                     Log1("Campo 'Health' não encontrado em Enemy");
 
-                UpdateEnemyList(); // Atualiza a lista após matar
+                UpdateEnemyList();
             }
             catch (Exception e)
             {
@@ -417,6 +411,7 @@ namespace r.e.p.o_cheat
 
             try
             {
+               
                 var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", BindingFlags.Public | BindingFlags.Instance);
                 if (playerDeathHeadField != null)
                 {
@@ -424,32 +419,20 @@ namespace r.e.p.o_cheat
                     if (playerDeathHeadInstance != null)
                     {
                         var inExtractionPointField = playerDeathHeadInstance.GetType().GetField("inExtractionPoint", BindingFlags.NonPublic | BindingFlags.Instance);
-                        var reviveMethod = playerDeathHeadInstance.GetType().GetMethod("Revive");
+                        var reviveMethod = playerDeathHeadInstance.GetType().GetMethod("Revive", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                         if (inExtractionPointField != null)
-                            inExtractionPointField.SetValue(playerDeathHeadInstance, true);
-                        reviveMethod?.Invoke(playerDeathHeadInstance, null);
-                        Log1("Jogador revivido: " + playerNames[selectedPlayerIndex]);
-
-                        var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (playerHealthField != null)
                         {
-                            var playerHealthInstance = playerHealthField.GetValue(selectedPlayer);
-                            if (playerHealthInstance != null)
-                            {
-                                var healthType = playerHealthInstance.GetType();
-                                var maxHealthField = healthType.GetField("maxHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                                int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
-                                Health_Player.HealPlayer(selectedPlayer, maxHealth, playerNames[selectedPlayerIndex]);
-                                Log1($"Jogador curado para {maxHealth} HP após reviver.");
-                            }
-                            else
-                            {
-                                Log1("Instância de playerHealth é nula, cura não realizada.");
-                            }
+                            inExtractionPointField.SetValue(playerDeathHeadInstance, true);
+                            Log1("Campo 'inExtractionPoint' definido como true.");
+                        }
+                        if (reviveMethod != null)
+                        {
+                            reviveMethod.Invoke(playerDeathHeadInstance, null);
+                            Log1("Método 'Revive' chamado com sucesso para: " + playerNames[selectedPlayerIndex]);
                         }
                         else
                         {
-                            Log1("Campo 'playerHealth' não encontrado, cura não realizada.");
+                            Log1("Método 'Revive' não encontrado!");
                         }
                     }
                     else
@@ -459,7 +442,46 @@ namespace r.e.p.o_cheat
                 }
                 else
                 {
-                    Log1("Campo playerDeathHead não encontrado.");
+                    Log1("Campo 'playerDeathHead' não encontrado.");
+                }
+
+          
+                var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (playerHealthField != null)
+                {
+                    var playerHealthInstance = playerHealthField.GetValue(selectedPlayer);
+                    if (playerHealthInstance != null)
+                    {
+                        var healthType = playerHealthInstance.GetType();
+                        var maxHealthField = healthType.GetField("maxHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        var healthField = healthType.GetField("health", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+                        int maxHealth = maxHealthField != null ? (int)maxHealthField.GetValue(playerHealthInstance) : 100;
+                        Log1($"maxHealth obtido: {maxHealth}");
+
+                        if (healthField != null)
+                        {
+                          
+                            healthField.SetValue(playerHealthInstance, maxHealth);
+                            Log1($"Saúde definida diretamente para {maxHealth} via healthField.");
+                        }
+                        else
+                        {
+                            Log1("Campo 'health' não encontrado, tentando HealPlayer como fallback.");
+                            Health_Player.HealPlayer(selectedPlayer, maxHealth, playerNames[selectedPlayerIndex]);
+                        }
+
+                        int currentHealth = healthField != null ? (int)healthField.GetValue(playerHealthInstance) : -1;
+                        Log1($"Saúde atual após revive: {currentHealth}");
+                    }
+                    else
+                    {
+                        Log1("Instância de playerHealth é nula, não foi possível restaurar saúde.");
+                    }
+                }
+                else
+                {
+                    Log1("Campo 'playerHealth' não encontrado, cura não realizada.");
                 }
             }
             catch (Exception e)
@@ -538,7 +560,6 @@ namespace r.e.p.o_cheat
             {
                 Log1($"Tentando enviar {playerNames[selectedPlayerIndex]} para o void | MasterClient: {PhotonNetwork.IsMasterClient}");
 
-                // Obter o PhotonView
                 var photonViewField = selectedPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (photonViewField == null)
                 {
@@ -588,30 +609,28 @@ namespace r.e.p.o_cheat
         }
         public void OnGUI()
         {
-            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool) DebugCheats.DrawESP();
+            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool) DebugCheats.DrawESP();
 
             GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
             GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
 
             if (showMenu)
             {
-                UIHelper.Begin("DARK Menu", 50, 50, 600, 730, 30, 30, 10); // Altura aumentada de 600 para 700
+                UIHelper.Begin("DARK Menu", 50, 50, 600, 730, 30, 30, 10);
 
-                float tabWidth = 90f; // Largura maior para os botões
-                float tabHeight = 40f; // Altura suficiente para o texto
-                float spacing = 10f; // Espaçamento reduzido entre botões
-                float totalWidth = 6 * tabWidth + 5 * spacing; // Largura total ocupada: 6 abas * 90 + 5 espaçamentos * 10 = 590
-                float startX = 50 + (600 - totalWidth) / 2f; // Centraliza as abas no menu de 600 de largura
+                float tabWidth = 90f; 
+                float tabHeight = 40f; 
+                float spacing = 10f; 
+                float totalWidth = 6 * tabWidth + 5 * spacing; 
+                float startX = 50 + (600 - totalWidth) / 2f; 
 
-                // Estilo para melhorar a legibilidade do texto
                 GUIStyle tabStyle = new GUIStyle(GUI.skin.button)
                 {
-                    fontSize = 14, // Tamanho da fonte maior
+                    fontSize = 14, 
                     alignment = TextAnchor.MiddleCenter,
                     wordWrap = false
                 };
 
-                // Botões das abas
                 if (GUI.Button(new Rect(startX, 80, tabWidth, tabHeight), "Player", tabStyle)) currentCategory = MenuCategory.Player;
                 if (GUI.Button(new Rect(startX + tabWidth + spacing, 80, tabWidth, tabHeight), "ESP", tabStyle)) currentCategory = MenuCategory.ESP;
                 if (GUI.Button(new Rect(startX + 2 * (tabWidth + spacing), 80, tabWidth, tabHeight), "Combat", tabStyle)) currentCategory = MenuCategory.Combat;
@@ -694,23 +713,40 @@ namespace r.e.p.o_cheat
 
                     case MenuCategory.ESP:
                         DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 70, 160);
-                        DebugCheats.showEnemyNames = UIHelper.Checkbox("Show Enemy Names", DebugCheats.showEnemyNames, 100, 190);
-                        DebugCheats.showEnemyDistance = UIHelper.Checkbox("Show Enemy Distance", DebugCheats.showEnemyDistance, 100, 220);
+
+                        if (DebugCheats.drawEspBool)
+                        {
+                            DebugCheats.showEnemyNames = UIHelper.Checkbox("Show Enemy Names", DebugCheats.showEnemyNames, 100, 190);
+                            DebugCheats.showEnemyDistance = UIHelper.Checkbox("Show Enemy Distance", DebugCheats.showEnemyDistance, 100, 220);
+                        }
 
                         DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 70, 260);
-                        DebugCheats.showItemNames = UIHelper.Checkbox("Show Item Names", DebugCheats.showItemNames, 100, 290);
-                        DebugCheats.showItemDistance = UIHelper.Checkbox("Show Item Distance", DebugCheats.showItemDistance, 100, 320);
-                        DebugCheats.showItemValue = UIHelper.Checkbox("Show Item Value", DebugCheats.showItemValue, 100, 350);
 
-                        DebugCheats.drawExtractionPointEspBool = UIHelper.Checkbox("Extraction ESP", DebugCheats.drawExtractionPointEspBool, 70, 380);
-                        DebugCheats.showExtractionNames = UIHelper.Checkbox("Show Extraction Names", DebugCheats.showExtractionNames, 100, 410);
-                        DebugCheats.showExtractionDistance = UIHelper.Checkbox("Show Extraction Distance", DebugCheats.showExtractionDistance, 100, 440);
+                        if (DebugCheats.drawItemEspBool)
+                        {
+                            DebugCheats.showItemNames = UIHelper.Checkbox("Show Item Names", DebugCheats.showItemNames, 100, 290);
+                            DebugCheats.showItemDistance = UIHelper.Checkbox("Show Item Distance", DebugCheats.showItemDistance, 100, 320);
+                            DebugCheats.showItemValue = UIHelper.Checkbox("Show Item Value", DebugCheats.showItemValue, 100, 350);
+                            DebugCheats.draw3DItemEspBool = UIHelper.Checkbox("3D Item ESP", DebugCheats.draw3DItemEspBool, 100, 380);
+                        }
 
-                        DebugCheats.drawPlayerEspBool = UIHelper.Checkbox("Player ESP", DebugCheats.drawPlayerEspBool, 70, 470);
-                        DebugCheats.draw3DPlayerEspBool = UIHelper.Checkbox("3D Player ESP", DebugCheats.draw3DPlayerEspBool, 100, 500);
-                        DebugCheats.showPlayerNames = UIHelper.Checkbox("Show Player Names", DebugCheats.showPlayerNames, 100, 530);
-                        DebugCheats.showPlayerDistance = UIHelper.Checkbox("Show Player Distance", DebugCheats.showPlayerDistance, 100, 560);
-                        DebugCheats.showPlayerHP = UIHelper.Checkbox("Show Player HP", DebugCheats.showPlayerHP, 100, 590);
+                        DebugCheats.drawExtractionPointEspBool = UIHelper.Checkbox("Extraction ESP", DebugCheats.drawExtractionPointEspBool, 70, 410);
+
+                        if (DebugCheats.drawExtractionPointEspBool)
+                        {
+                            DebugCheats.showExtractionNames = UIHelper.Checkbox("Show Extraction Names", DebugCheats.showExtractionNames, 100, 440);
+                            DebugCheats.showExtractionDistance = UIHelper.Checkbox("Show Extraction Distance", DebugCheats.showExtractionDistance, 100, 470);
+                        }
+
+                        DebugCheats.drawPlayerEspBool = UIHelper.Checkbox("2D Player ESP", DebugCheats.drawPlayerEspBool, 70, 500);
+                        DebugCheats.draw3DPlayerEspBool = UIHelper.Checkbox("3D Player ESP", DebugCheats.draw3DPlayerEspBool, 70, 530);
+
+                        if (DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool)
+                        {
+                            DebugCheats.showPlayerNames = UIHelper.Checkbox("Show Player Names", DebugCheats.showPlayerNames, 100, 560);
+                            DebugCheats.showPlayerDistance = UIHelper.Checkbox("Show Player Distance", DebugCheats.showPlayerDistance, 100, 590);
+                            DebugCheats.showPlayerHP = UIHelper.Checkbox("Show Player HP", DebugCheats.showPlayerHP, 100, 620);
+                        }
                         break;
 
                     case MenuCategory.Combat:
@@ -745,7 +781,7 @@ namespace r.e.p.o_cheat
                                 Hax2.Log1("Jogador local não encontrado!");
                                 return;
                             }
-                            Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f; // Levanta um pouco para evitar colisão
+                            Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
                             transform.position = targetPosition;
                             ItemSpawner.SpawnItem(targetPosition);
                             Hax2.Log1("Money spawned.");
