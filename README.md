@@ -38,6 +38,7 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Kill All Enemies<br />
 - Item List<br />
 - Teleport Item to You (host side for now)
+- 3D Esp Function (contribution from https://github.com/chadlrnsn)
 
 
 
