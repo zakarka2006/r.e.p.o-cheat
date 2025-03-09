@@ -42,9 +42,7 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 
 
 # **TO-DO:**
-
-- Player ESP<br />
-- Player Nickname<br />
+(community sugestions, will add everything)<br />
 - Change Damage<br />
 - Change Jump Speed<br />
 - Change Jump Delay<br />
@@ -52,6 +50,14 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Get All Upgrade Items<br />
 - Change Upgrades Numbers<br />
 - Complete Mission
+- Low gravity mode
+- Bypass extraction lock
+- Teleport all items
+- Spawning mobs
+- Infinity jump's
+- No Item Damage
+- No clip
+- 
 
 
 Im still looking to advance this cheat even more, since its very simple to make cheats for unity games, so it will probably be very complete with esp/kill all/change player model
