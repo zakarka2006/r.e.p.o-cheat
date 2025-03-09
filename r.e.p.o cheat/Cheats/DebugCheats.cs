@@ -1,26 +1,71 @@
 ﻿using System;
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime; // Necessário para ReceiverGroup e RaiseEventOptions
+using ExitGames.Client.Photon; // Necessário para SendOptions
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
-
+using System.Collections;
 namespace r.e.p.o_cheat
 {
     static class DebugCheats
     {
         private static int frameCounter = 0;
-        public static bool drawEspBool = false;
-        public static bool drawItemEspBool = false;
-        private static List<Enemy> enemyList = new List<Enemy>();
-        private static List<object> valuableObjects = new List<object>();
+        public static List<Enemy> enemyList = new List<Enemy>();
+        public static List<object> valuableObjects = new List<object>();
+        private static List<object> playerList = new List<object>();
         private static Camera cachedCamera;
         private static float scaleX, scaleY;
         public static Texture2D texture2;
         private static float lastUpdateTime = 0f;
-        private const float updateInterval = 0.5f;
+        private static float lastExtractionUpdateTime = 0f; // Separado para Extraction Points
+        private const float updateInterval = 1f;
+        private const float extractionUpdateInterval = 5f; // Atualizar a cada 5 segundos
         private static GameObject localPlayer;
+        private static List<ExtractionPointData> extractionPointList = new List<ExtractionPointData>();
 
+        public static bool drawEspBool = false;
+        public static bool drawItemEspBool = false;
+        public static bool drawPlayerEspBool = false;
+        public static bool draw3DPlayerEspBool = false;
+        public static bool drawExtractionPointEspBool = false;
+
+        // Novas variáveis para controle de exibição
+        public static bool showEnemyNames = true;
+        public static bool showEnemyDistance = true;
+        public static bool showItemNames = true;
+        public static bool showItemValue = true;
+        public static bool showItemDistance = false; // Padrão false para itens
+        public static bool showExtractionNames = true;
+        public static bool showExtractionDistance = true;
+        public static bool showPlayerNames = true;
+        public static bool showPlayerDistance = true;
+        public static bool showPlayerHP = true;
+
+        private static List<PlayerData> playerDataList = new List<PlayerData>();
+        private static float lastPlayerUpdateTime = 0f;
+        private static float playerUpdateInterval = 1f; // Atualizar a cada 1 segundo
+        private static Dictionary<int, int> playerHealthCache = new Dictionary<int, int>(); // Cache de saúde por PhotonView ID
+        private const float maxEspDistance = 100f; // Distância máxima para exibir ESP
+
+        public class PlayerData
+        {
+            public object PlayerObject { get; }
+            public PhotonView PhotonView { get; }
+            public Transform Transform { get; }
+            public bool IsAlive { get; set; }
+            public string Name { get; set; }
+
+            public PlayerData(object player)
+            {
+                PlayerObject = player;
+                PhotonView = player.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(player) as PhotonView;
+                Transform = player.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(player) as Transform;
+                Name = (player as PlayerAvatar) != null ? (SemiFunc.PlayerGetName(player as PlayerAvatar) ?? "Unknown Player") : "Unknown Player";
+                IsAlive = true; // Inicialmente assumimos vivo, atualizado depois
+            }
+        }
         static DebugCheats()
         {
             cachedCamera = Camera.main;
@@ -31,9 +76,76 @@ namespace r.e.p.o_cheat
             }
             UpdateLists();
             UpdateLocalPlayer();
+            UpdateExtractionPointList();
+            UpdatePlayerDataList();
+        }
+        private static void UpdatePlayerDataList()
+        {
+            playerDataList.Clear();
+            playerHealthCache.Clear();
+            var players = SemiFunc.PlayerGetList();
+            if (players != null)
+            {
+                foreach (var player in players)
+                {
+                    if (player != null)
+                    {
+                        var data = new PlayerData(player);
+                        if (data.PhotonView != null && data.Transform != null)
+                        {
+                            playerDataList.Add(data);
+                            int health = GetPlayerHealth(player);
+                            playerHealthCache[data.PhotonView.ViewID] = health;
+                        }
+                    }
+                }
+            }
+            lastPlayerUpdateTime = Time.time;
+            Hax2.Log1($"Lista de dados de jogadores atualizada: {playerDataList.Count} jogadores.");
+        }
+        private static void UpdateExtractionPointList()
+        {
+            extractionPointList.Clear();
+            var extractionPoints = UnityEngine.Object.FindObjectsOfType(Type.GetType("ExtractionPoint, Assembly-CSharp"));
+            if (extractionPoints != null)
+            {
+                foreach (var ep in extractionPoints)
+                {
+                    var extractionPoint = ep as ExtractionPoint;
+                    if (extractionPoint != null && extractionPoint.gameObject.activeInHierarchy)
+                    {
+                        var currentStateField = extractionPoint.GetType().GetField("currentState", BindingFlags.NonPublic | BindingFlags.Instance);
+                        string cachedState = "Unknown";
+                        if (currentStateField != null)
+                        {
+                            var stateValue = currentStateField.GetValue(extractionPoint);
+                            cachedState = stateValue?.ToString() ?? "Unknown";
+                        }
+                        Vector3 cachedPosition = extractionPoint.transform.position;
+                        extractionPointList.Add(new ExtractionPointData(extractionPoint, cachedState, cachedPosition));
+                        Hax2.Log1($"Extraction Point cacheado na posição: {cachedPosition}");
+                    }
+                }
+                Hax2.Log1($"Lista de Extraction Points atualizada: {extractionPointList.Count} pontos encontrados.");
+            }
+        }
+
+        public class ExtractionPointData
+        {
+            public ExtractionPoint ExtractionPoint { get; }
+            public string CachedState { get; }
+            public Vector3 CachedPosition { get; }
+
+            public ExtractionPointData(ExtractionPoint ep, string state, Vector3 position)
+            {
+                ExtractionPoint = ep;
+                CachedState = state;
+                CachedPosition = position;
+            }
         }
         private static void UpdateLists()
         {
+            UpdateExtractionPointList();
             enemyList.Clear();
             var enemyDirectorType = Type.GetType("EnemyDirector, Assembly-CSharp");
             if (enemyDirectorType != null)
@@ -69,16 +181,25 @@ namespace r.e.p.o_cheat
                 }
             }
 
-            valuableObjects.Clear();
-            var valuableArray = UnityEngine.Object.FindObjectsOfType(Type.GetType("ValuableObject, Assembly-CSharp"));
-            if (valuableArray != null)
+            // Removido o preenchimento de valuableObjects aqui, pois o Hax2 gerencia isso
+
+            playerList.Clear();
+            var players = SemiFunc.PlayerGetList();
+            if (players != null)
             {
-                valuableObjects.AddRange(valuableArray);
+                foreach (var player in players)
+                {
+                    if (player != null)
+                    {
+                        playerList.Add(player);
+                    }
+                }
             }
 
             lastUpdateTime = Time.time;
-            Hax2.Log1($"Listas atualizadas: {enemyList.Count} inimigos, {valuableObjects.Count} itens.");
+            Hax2.Log1($"Listas atualizadas: {enemyList.Count} inimigos, {valuableObjects.Count} itens, {playerList.Count} jogadores.");
         }
+
         private static void UpdateLocalPlayer()
         {
             var players = SemiFunc.PlayerGetList();
@@ -103,186 +224,10 @@ namespace r.e.p.o_cheat
             Hax2.Log1("Nenhum jogador local encontrado para atualizar.");
         }
 
-        public static void SpawnItemLocally(Vector3 spawnPosition)
-        {
-            var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
-            if (debugAxelType != null)
-            {
-                var debugAxelInstance = GameHelper.FindObjectOfType(debugAxelType);
-                if (debugAxelInstance != null)
-                {
-                    var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
-                    if (spawnObjectMethod != null)
-                    {
-                        GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
-                        string path = "Valuables/";
 
-                        GameObject spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity);
-                        Hax2.Log1("Item spawned successfully via Photon: " + spawnedItem.name);
+        // DebugCheats.cs
 
-                        spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
-                    }
-                    else
-                    {
-                        Hax2.Log1("SpawnObject method not found in DebugAxel.");
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("DebugAxel instance not found in the scene.");
-                }
-            }
-            else
-            {
-                Hax2.Log1("DebugAxel type not found.");
-            }
-        }
-
-        public static void SpawnItem()
-        {
-            GameObject player = GetLocalPlayer();
-            if (player == null)
-            {
-                Hax2.Log1("Local player not found.");
-                return;
-            }
-
-            Vector3 spawnPosition = player.transform.position + Vector3.up * 1.0f; 
-            GameObject itemToSpawn = AssetManager.instance.surplusValuableSmall;
-            if (itemToSpawn == null)
-            {
-                Hax2.Log1("Item to spawn is null. Check AssetManager.instance.surplusValuableSmall.");
-                return;
-            }
-            string path = "Valuables/";
-            GameObject spawnedItem = null;
-
-            if (PhotonNetwork.IsConnected)
-            {
-                object[] instantiationData = new object[] { spawnPosition };
-                spawnedItem = PhotonNetwork.Instantiate(path + itemToSpawn.name, spawnPosition, Quaternion.identity, 0, instantiationData);
-                Hax2.Log1("Item spawned via Photon at: " + spawnPosition + ", Name: " + spawnedItem.name);
-
-                EnsureItemVisibility(spawnedItem);
-
-                PhotonView photonView = spawnedItem.GetComponent<PhotonView>();
-                if (photonView == null)
-                {
-                    Hax2.Log1("PhotonView not found on spawned item! Adding one.");
-                    photonView = spawnedItem.AddComponent<PhotonView>();
-                    photonView.ViewID = PhotonNetwork.AllocateViewID(0);
-                    photonView.OwnershipTransfer = OwnershipOption.Takeover;
-                }
-
-                Hax2.Log1("PhotonView Owner: " + photonView.Owner?.NickName + ", IsMine: " + photonView.IsMine + ", ViewID: " + photonView.ViewID);
-
-                PhotonTransformView transformView = spawnedItem.GetComponent<PhotonTransformView>();
-                if (transformView == null)
-                {
-                    transformView = spawnedItem.AddComponent<PhotonTransformView>();
-                    Hax2.Log1("Added PhotonTransformView to " + spawnedItem.name + " for position/rotation sync.");
-                }
-
-                PhotonRigidbodyView rigidbodyView = spawnedItem.GetComponent<PhotonRigidbodyView>();
-                if (rigidbodyView == null)
-                {
-                    rigidbodyView = spawnedItem.AddComponent<PhotonRigidbodyView>();
-                    Hax2.Log1("Added PhotonRigidbodyView to " + spawnedItem.name + " for physics sync.");
-                }
-
-                photonView.ObservedComponents = new List<Component> { transformView, rigidbodyView };
-
-                if (PhotonNetwork.IsMasterClient)
-                {
-                    photonView.TransferOwnership(PhotonNetwork.LocalPlayer);
-                    Hax2.Log1("Master Client took ownership of " + spawnedItem.name);
-                }
-
-                Rigidbody rb = spawnedItem.GetComponent<Rigidbody>();
-                if (rb != null)
-                {
-                    rb.position = spawnPosition;
-                    rb.isKinematic = false;
-                    if (PhotonNetwork.IsMasterClient)
-                    {
-                        Hax2.Log1("Master Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
-                    }
-                    else
-                    {
-                        Hax2.Log1("Client initialized item physics for " + spawnedItem.name + " at: " + spawnPosition);
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("No Rigidbody found on item, relying on PhotonTransformView only.");
-                }
-
-                Hax2.Log1("PhotonView Observed Components: " + string.Join(", ", photonView.ObservedComponents.Select(c => c.GetType().Name)));
-            }
-            else
-            {
-                var debugAxelType = Type.GetType("DebugAxel, Assembly-CSharp");
-                if (debugAxelType != null)
-                {
-                    var debugAxelInstance = GameHelper.FindObjectOfType(debugAxelType);
-                    if (debugAxelInstance != null)
-                    {
-                        var spawnObjectMethod = debugAxelType.GetMethod("SpawnObject", BindingFlags.NonPublic | BindingFlags.Instance);
-                        if (spawnObjectMethod != null)
-                        {
-                            spawnObjectMethod.Invoke(debugAxelInstance, new object[] { itemToSpawn, spawnPosition, path });
-                            Hax2.Log1("Item spawned locally via DebugAxel at: " + spawnPosition);
-                            spawnedItem = GameObject.Find(itemToSpawn.name + "(Clone)");
-                            if (spawnedItem != null)
-                            {
-                                EnsureItemVisibility(spawnedItem);
-                            }
-                            return;
-                        }
-                    }
-                }
-
-                spawnedItem = UnityEngine.Object.Instantiate(itemToSpawn, spawnPosition, Quaternion.identity);
-                Hax2.Log1("Item spawned locally via Instantiate at: " + spawnPosition + ", Name: " + spawnedItem.name);
-                EnsureItemVisibility(spawnedItem);
-            }
-        }
-
-        private static void EnsureItemVisibility(GameObject item)
-        {
-            if (item == null)
-            {
-                Hax2.Log1("Item is null, cannot ensure visibility.");
-                return;
-            }
-
-            item.SetActive(true);
-            Hax2.Log1("Item active state: " + item.activeSelf + " for " + item.name);
-
-            var renderers = item.GetComponentsInChildren<Renderer>(true);
-            Hax2.Log1("Found " + renderers.Length + " renderers in item: " + item.name);
-            foreach (var renderer in renderers)
-            {
-                renderer.enabled = true;
-                Hax2.Log1("Renderer " + renderer.GetType().Name + " enabled: " + renderer.enabled + " for " + item.name);
-            }
-
-            item.layer = LayerMask.NameToLayer("Default");
-            Hax2.Log1("Item layer set to: " + LayerMask.LayerToName(item.layer) + " for " + item.name);
-
-            MonoBehaviour[] scripts = item.GetComponents<MonoBehaviour>();
-            Hax2.Log1("Found " + scripts.Length + " scripts on item: " + item.name);
-            foreach (var script in scripts)
-            {
-                if (script != null && script != item.GetComponent<PhotonView>() && script != item.GetComponent<PhotonTransformView>() && script != item.GetComponent<PhotonRigidbodyView>())
-                {
-                    script.enabled = true;
-                    Hax2.Log1("Script " + script.GetType().Name + " enabled: " + script.enabled + " for " + item.name);
-                }
-            }
-        }
-
-        private static GameObject GetLocalPlayer()
+        public static GameObject GetLocalPlayer()
         {
             if (PhotonNetwork.IsConnected)
             {
@@ -363,7 +308,6 @@ namespace r.e.p.o_cheat
             return null;
         }
 
-
         public static void UpdateEnemyList()
         {
             enemyList.Clear();
@@ -439,13 +383,111 @@ namespace r.e.p.o_cheat
             RectOutlined(x - width / 2f, y - height, width, height, text, thickness);
         }
 
+        private static void CreateBoundsEdges(Bounds bounds, Color color)
+        {
+            Vector3[] vertices = new Vector3[8];
+            Vector3 min = bounds.min;
+            Vector3 max = bounds.max;
+
+            vertices[0] = new Vector3(min.x, min.y, min.z); // Canto inferior esquerdo frontal
+            vertices[1] = new Vector3(max.x, min.y, min.z); // Canto inferior direito frontal
+            vertices[2] = new Vector3(max.x, min.y, max.z); // Canto inferior direito traseiro
+            vertices[3] = new Vector3(min.x, min.y, max.z); // Canto inferior esquerdo traseiro
+            vertices[4] = new Vector3(min.x, max.y, min.z); // Canto superior esquerdo frontal
+            vertices[5] = new Vector3(max.x, max.y, min.z); // Canto superior direito frontal
+            vertices[6] = new Vector3(max.x, max.y, max.z); // Canto superior direito traseiro
+            vertices[7] = new Vector3(min.x, max.y, max.z); // Canto superior esquerdo traseiro
+
+            Vector2[] screenVertices = new Vector2[8];
+            bool isVisible = false;
+
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 screenPos = cachedCamera.WorldToScreenPoint(vertices[i]);
+                if (screenPos.z > 0) isVisible = true;
+                screenVertices[i] = new Vector2(screenPos.x * scaleX, Screen.height - (screenPos.y * scaleY));
+            }
+
+            if (!isVisible) return;
+
+            DrawLine(screenVertices[0], screenVertices[1], color);
+            DrawLine(screenVertices[1], screenVertices[2], color);
+            DrawLine(screenVertices[2], screenVertices[3], color);
+            DrawLine(screenVertices[3], screenVertices[0], color);
+
+            DrawLine(screenVertices[4], screenVertices[5], color);
+            DrawLine(screenVertices[5], screenVertices[6], color);
+            DrawLine(screenVertices[6], screenVertices[7], color);
+            DrawLine(screenVertices[7], screenVertices[4], color);
+
+            DrawLine(screenVertices[0], screenVertices[4], color);
+            DrawLine(screenVertices[1], screenVertices[5], color);
+            DrawLine(screenVertices[2], screenVertices[6], color);
+            DrawLine(screenVertices[3], screenVertices[7], color);
+        }
+
+        private static void DrawLine(Vector2 start, Vector2 end, Color color)
+        {
+            if (texture2 == null) return;
+
+            float distance = Vector2.Distance(start, end);
+            float angle = Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg;
+
+            GUI.color = color;
+            Matrix4x4 originalMatrix = GUI.matrix; // Salvar estado da GUI
+            GUIUtility.RotateAroundPivot(angle, start);
+            GUI.DrawTexture(new Rect(start.x, start.y, distance, 1f), texture2);
+            GUI.matrix = originalMatrix; // Restaurar estado da GUI
+            GUI.color = Color.white;
+        }
+
+        private static Bounds GetActiveColliderBounds(GameObject obj)
+        {
+            Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+            List<Collider> activeColliders = new List<Collider>();
+
+            foreach (Collider col in colliders)
+            {
+                if (col.enabled && col.gameObject.activeInHierarchy)
+                    activeColliders.Add(col);
+            }
+
+            if (activeColliders.Count == 0)
+            {
+                Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+                if (renderers.Length > 0)
+                {
+                    Bounds bounds = renderers[0].bounds;
+                    for (int i = 1; i < renderers.Length; i++)
+                    {
+                        if (renderers[i].enabled && renderers[i].gameObject.activeInHierarchy)
+                            bounds.Encapsulate(renderers[i].bounds);
+                    }
+                    return bounds;
+                }
+                return new Bounds(obj.transform.position, Vector3.one * 0.5f);
+            }
+
+            Bounds resultBounds = activeColliders[0].bounds;
+            for (int i = 1; i < activeColliders.Count; i++)
+            {
+                resultBounds.Encapsulate(activeColliders[i].bounds);
+            }
+
+            resultBounds.Expand(0.1f);
+            return resultBounds;
+        }
         public static void DrawESP()
         {
-            if (!drawEspBool && !drawItemEspBool) return;
+            if (!drawEspBool && !drawItemEspBool && !drawExtractionPointEspBool && !drawPlayerEspBool && !draw3DPlayerEspBool) return;
 
             if (Time.time - lastUpdateTime > updateInterval)
             {
-                UpdateLists();
+                UpdatePlayerDataList();
+                if (drawEspBool || drawItemEspBool || drawExtractionPointEspBool || drawPlayerEspBool || draw3DPlayerEspBool)
+                {
+                    UpdateLists();
+                }
                 UpdateLocalPlayer();
             }
 
@@ -465,6 +507,7 @@ namespace r.e.p.o_cheat
             scaleX = (float)Screen.width / cachedCamera.pixelWidth;
             scaleY = (float)Screen.height / cachedCamera.pixelHeight;
 
+            // Enemy ESP
             if (drawEspBool)
             {
                 GUIStyle enemyStyle = new GUIStyle(GUI.skin.label)
@@ -518,12 +561,14 @@ namespace r.e.p.o_cheat
                         }
 
                         string distanceText = "";
-                        if (localPlayer != null)
+                        if (showEnemyDistance && localPlayer != null)
                         {
                             float distance2 = Vector3.Distance(localPlayer.transform.position, enemyInstance.transform.position);
                             distanceText = $" [{distance2:F1}m]";
                         }
-                        string fullText = enemyName + distanceText;
+
+                        string fullText = (showEnemyNames ? enemyName : "") + (showEnemyDistance ? distanceText : "");
+                        if (string.IsNullOrEmpty(fullText)) continue;
 
                         float labelHeight = enemyStyle.CalcHeight(new GUIContent(fullText), labelWidth);
                         float labelY = y - height - labelHeight;
@@ -533,6 +578,7 @@ namespace r.e.p.o_cheat
                 }
             }
 
+            // Item ESP
             if (drawItemEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
@@ -595,19 +641,232 @@ namespace r.e.p.o_cheat
                         var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
                         int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
 
+                        string distanceText = "";
+                        if (showItemDistance && localPlayer != null)
+                        {
+                            float distance = Vector3.Distance(localPlayer.transform.position, itemPosition);
+                            distanceText = $" [{distance:F1}m]";
+                        }
+
                         float labelWidth = 150f;
                         float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(itemValue.ToString() + "$"), labelWidth);
-                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(itemName), labelWidth);
+                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(itemName + distanceText), labelWidth);
                         float totalHeight = nameLabelHeight + valueLabelHeight + 5f;
                         float labelX = x - labelWidth / 2f;
                         float labelY = y - totalHeight - 5f;
 
-                        GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), itemName, nameStyle);
-                        GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
+                        string nameText = (showItemNames ? itemName : "") + (showItemDistance ? distanceText : "");
+                        if (!string.IsNullOrEmpty(nameText))
+                        {
+                            GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameText, nameStyle);
+                        }
+                        if (showItemValue)
+                        {
+                            GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
+                        }
+
+                        Bounds bounds = GetActiveColliderBounds(transform.gameObject);
+                        CreateBoundsEdges(bounds, Color.yellow);
+                    }
+                }
+            }
+
+            // Extraction Point ESP
+            if (drawExtractionPointEspBool)
+            {
+                GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 14,
+                    fontStyle = FontStyle.Bold,
+                    wordWrap = true,
+                    border = new RectOffset(1, 1, 1, 1)
+                };
+
+                GUIStyle valueStyle = new GUIStyle(GUI.skin.label)
+                {
+                    normal = { textColor = Color.white },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold
+                };
+
+                foreach (var epData in extractionPointList)
+                {
+                    if (epData.ExtractionPoint == null || !epData.ExtractionPoint.gameObject.activeInHierarchy) continue;
+
+                    Vector3 screenPos = cachedCamera.WorldToScreenPoint(epData.CachedPosition);
+
+                    if (screenPos.z > 0 && screenPos.x > 0 && screenPos.x < Screen.width && screenPos.y > 0 && screenPos.y < Screen.height)
+                    {
+                        float x = screenPos.x * scaleX;
+                        float y = Screen.height - (screenPos.y * scaleY);
+
+                        string pointName = showExtractionNames ? "Extraction Point" : "";
+                        string stateText = showExtractionNames ? $" ({epData.CachedState})" : "";
+                        string distanceText = "";
+                        if (showExtractionDistance && localPlayer != null)
+                        {
+                            distanceText = $"{Vector3.Distance(localPlayer.transform.position, epData.CachedPosition):F1}m";
+                        }
+
+                        nameStyle.normal.textColor = epData.CachedState == "Active" ? Color.green : (epData.CachedState == "Idle" ? Color.red : Color.cyan);
+
+                        float labelWidth = 150f;
+                        float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(distanceText), labelWidth);
+                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(pointName + stateText), labelWidth);
+                        float totalHeight = nameLabelHeight + (showExtractionDistance ? valueLabelHeight + 5f : 0f);
+                        float labelX = x - labelWidth / 2f;
+                        float labelY = y - totalHeight - 5f;
+
+                        if (showExtractionNames)
+                        {
+                            GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), pointName + stateText, nameStyle);
+                        }
+                        if (showExtractionDistance && !string.IsNullOrEmpty(distanceText))
+                        {
+                            GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), distanceText, valueStyle);
+                        }
+                    }
+                }
+            }
+
+            // Player ESPif (drawPlayerEspBool || draw3DPlayerEspBool)
+            {
+                GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
+                {
+                    normal = { textColor = Color.white },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 14,
+                    fontStyle = FontStyle.Bold,
+                    wordWrap = true,
+                    border = new RectOffset(1, 1, 1, 1)
+                };
+
+                GUIStyle healthStyle = new GUIStyle(GUI.skin.label)
+                {
+                    normal = { textColor = Color.green },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold
+                };
+
+                GUIStyle distanceStyle = new GUIStyle(GUI.skin.label)
+                {
+                    normal = { textColor = Color.yellow },
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold
+                };
+
+                foreach (var playerData in playerDataList)
+                {
+                    if (playerData.PhotonView == null || playerData.PhotonView.IsMine || !playerData.Transform.gameObject.activeInHierarchy) continue;
+
+                    Vector3 playerPos = playerData.Transform.position;
+                    float distanceToPlayer = localPlayer != null ? Vector3.Distance(localPlayer.transform.position, playerPos) : float.MaxValue;
+                    if (distanceToPlayer > maxEspDistance) continue;
+
+                    Vector3 footPosition = playerPos;
+                    float playerHeightEstimate = 2f;
+                    Vector3 headPosition = playerPos + Vector3.up * playerHeightEstimate;
+
+                    Vector3 screenFootPos = cachedCamera.WorldToScreenPoint(footPosition);
+                    Vector3 screenHeadPos = cachedCamera.WorldToScreenPoint(headPosition);
+                    bool isInFront = screenFootPos.z > 0 && screenHeadPos.z > 0;
+
+                    float footX, footY, headY, width, height;
+                    if (isInFront)
+                    {
+                        footX = screenFootPos.x * scaleX;
+                        footY = Screen.height - (screenFootPos.y * scaleY);
+                        headY = Screen.height - (screenHeadPos.y * scaleY);
+                    }
+                    else
+                    {
+                        // Projeta para a borda da tela se estiver atrás
+                        Vector3 directionToPlayer = (playerPos - cachedCamera.transform.position).normalized;
+                        Vector3 projectedPos = cachedCamera.transform.position + directionToPlayer * 5f; // Distância arbitrária para borda
+                        Vector3 screenProjectedPos = cachedCamera.WorldToScreenPoint(projectedPos);
+                        footX = Mathf.Clamp(screenProjectedPos.x * scaleX, 0, Screen.width);
+                        footY = Mathf.Clamp(Screen.height - (screenProjectedPos.y * scaleY), 0, Screen.height);
+                        headY = footY - 50f; // Aproximação para altura
+                    }
+
+                    height = Mathf.Abs(footY - headY);
+                    float playerScale = playerData.Transform.localScale.y;
+                    float baseWidth = playerScale * 200f;
+                    width = (baseWidth / (distanceToPlayer + 1f)) * scaleX; // +1f para evitar divisão por zero
+                    width = Mathf.Clamp(width, 30f, height * 1.2f);
+                    height = Mathf.Clamp(height, 40f, 400f);
+
+                    float x = footX;
+                    float y = footY;
+
+                    if (draw3DPlayerEspBool)
+                    {
+                        Bounds bounds = GetActiveColliderBounds(playerData.Transform.gameObject);
+                        CreateBoundsEdges(bounds, Color.red);
+                    }
+                    else if (drawPlayerEspBool)
+                    {
+                        Box(x, y, width, height, texture2, 2f);
+                    }
+
+
+                    int health = playerHealthCache.ContainsKey(playerData.PhotonView.ViewID) ? playerHealthCache[playerData.PhotonView.ViewID] : 100;
+                    string healthText = $"HP: {health}";
+                    string distanceText = showPlayerDistance && localPlayer != null ? $"{distanceToPlayer:F1}m" : "";
+
+
+                    float labelWidth = 150f;
+                    float nameHeight = showPlayerNames ? nameStyle.CalcHeight(new GUIContent(playerData.Name), labelWidth) : 0f;
+                    float healthHeight = healthStyle.CalcHeight(new GUIContent(healthText), labelWidth);
+                    float distanceHeight = showPlayerDistance ? distanceStyle.CalcHeight(new GUIContent(distanceText), labelWidth) : 0f;
+
+                    float totalHeight = nameHeight + healthHeight + (showPlayerDistance ? distanceHeight + 4f : 0f);
+                    float labelX = x - labelWidth / 2f;
+                    float labelY = y - height - totalHeight - 10f;
+
+                    if (showPlayerNames)
+                    {
+                        GUI.Label(new Rect(labelX, labelY, labelWidth, nameHeight), playerData.Name, nameStyle);
+                    }
+                    if (showPlayerHP)
+                    {
+                        GUI.Label(new Rect(labelX, labelY + nameHeight + 2f, labelWidth, healthHeight), healthText, healthStyle);
+                    }
+                    if (showPlayerDistance && !string.IsNullOrEmpty(distanceText))
+                    {
+                        GUI.Label(new Rect(labelX, labelY + nameHeight + healthHeight + 4f, labelWidth, distanceHeight), distanceText, distanceStyle);
                     }
                 }
             }
         }
+
+        private static int GetPlayerHealth(object player)
+        {
+            try
+            {
+                var playerHealthField = player.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (playerHealthField == null) return 100;
+
+                var playerHealthInstance = playerHealthField.GetValue(player);
+                if (playerHealthInstance == null) return 100;
+
+                var healthField = playerHealthInstance.GetType().GetField("health", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (healthField == null) return 100;
+
+                return (int)healthField.GetValue(playerHealthInstance);
+            }
+            catch (Exception e)
+            {
+                Hax2.Log1($"Erro ao obter vida do jogador: {e.Message}");
+                return 100;
+            }
+        }
+
+
         public static void KillAllEnemies()
         {
             Hax2.Log1("Tentando matar todos os inimigos");

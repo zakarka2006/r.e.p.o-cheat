@@ -365,15 +365,23 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cheats\CrashLobby.cs" />
+    <Compile Include="Cheats\Items.cs" />
+    <Compile Include="Cheats\ItemSpawner.cs" />
+    <Compile Include="Cheats\ItemSync.cs" />
     <Compile Include="Cheats\PlayerCheatSync.cs" />
     <Compile Include="Cheats\DebugCheats.cs" />
     <Compile Include="Cheats\GameHelper.cs" />
     <Compile Include="Cheats\Health_Player.cs" />
     <Compile Include="Cheats\playerColor.cs" />
     <Compile Include="Cheats\PlayerController.cs" />
+    <Compile Include="Cheats\Teleport.cs" />
     <Compile Include="main.cs" />
     <Compile Include="hax.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Cheats\ChamsShader.shader" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

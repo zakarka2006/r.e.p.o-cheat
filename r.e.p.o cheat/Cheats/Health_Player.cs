@@ -160,7 +160,14 @@ namespace r.e.p.o_cheat
                             var damageMethod = playerHealthInstance.GetType().GetMethod("UpdateHealthRPC");
                             if (damageMethod != null)
                             {
-                                damageMethod.Invoke(playerHealthInstance, new object[] { 999999, 100, true });
+                                if (Hax2.infiniteHealthActive)
+                                {
+                                    damageMethod.Invoke(playerHealthInstance, new object[] { 999999, 100, true });
+                                }
+                                else if (!Hax2.infiniteHealthActive)
+                                {
+                                    damageMethod.Invoke(playerHealthInstance, new object[] { 100, 100, true });
+                                }
                                 Hax2.Log1("Vida máxima ajustada para 999999.");
                             }
                             else
