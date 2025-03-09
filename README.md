@@ -49,15 +49,15 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Change Crouch Delay<br />
 - Get All Upgrade Items<br />
 - Change Upgrades Numbers<br />
-- Complete Mission
-- Low gravity mode
-- Bypass extraction lock
-- Teleport all items
-- Spawning mobs
-- Infinity jump's
-- No Item Damage
-- No clip
-- 
+- Complete Mission<br />
+- Low gravity mode<br />
+- Bypass extraction lock<br />
+- Teleport all items<br />
+- Spawning mobs<br />
+- Infinity jump's<br />
+- No Item Damage<br />
+- No clip<br />
+- Player Death Head ESP<br />
 
 
 Im still looking to advance this cheat even more, since its very simple to make cheats for unity games, so it will probably be very complete with esp/kill all/change player model
