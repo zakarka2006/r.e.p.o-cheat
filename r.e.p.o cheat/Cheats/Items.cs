@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
-
+using Photon.Realtime;
+using System.Reflection;
 
 namespace r.e.p.o_cheat
 {
@@ -22,6 +23,23 @@ namespace r.e.p.o_cheat
             }
         }
 
+        private static PhotonView punManagerPhotonView;
+
+        private static void InitializePunManager()
+        {
+            if (punManagerPhotonView == null)
+            {
+                var punManagerType = Type.GetType("PunManager, Assembly-CSharp");
+                var punManagerInstance = GameHelper.FindObjectOfType(punManagerType);
+                if (punManagerInstance != null)
+                {
+                    punManagerPhotonView = (PhotonView)punManagerType.GetField("photonView", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(punManagerInstance);
+                    if (punManagerPhotonView == null) { Hax2.Log1("PhotonView not found in PunManager."); }
+                }
+                else { Hax2.Log1("PunManager instance not found."); }
+            }
+        }
+
         public static List<GameItem> GetItemList()
         {
             List<GameItem> itemList = new List<GameItem>();
@@ -30,13 +48,13 @@ namespace r.e.p.o_cheat
             {
                 if (valuableObject == null) continue;
 
-                var transform = valuableObject.GetType().GetProperty("transform", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
+                var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
                 if (transform == null || !transform.gameObject.activeInHierarchy) continue;
 
                 string itemName;
                 try
                 {
-                    itemName = valuableObject.GetType().GetProperty("name", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(valuableObject) as string;
+                    itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
                     if (string.IsNullOrEmpty(itemName))
                     {
                         itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
@@ -57,7 +75,7 @@ namespace r.e.p.o_cheat
                     itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
                 }
 
-                var valueField = valuableObject.GetType().GetField("dollarValueCurrent", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
                 int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
 
                 itemList.Add(new GameItem(itemName, itemValue, valuableObject));
@@ -88,11 +106,12 @@ namespace r.e.p.o_cheat
                     return;
                 }
 
-                Vector3 playerPosition = player.transform.position + Vector3.up * 1.5f;
+                Vector3 targetPosition = player.transform.position + Vector3.up * 1.5f;
+                Hax2.Log1($"Target position for teleport: {targetPosition}");
 
                 Transform itemTransform = null;
                 var itemObjectType = selectedItem.ItemObject.GetType();
-                var transformProperty = itemObjectType.GetProperty("transform", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                var transformProperty = itemObjectType.GetProperty("transform", BindingFlags.Public | BindingFlags.Instance);
                 if (transformProperty != null)
                 {
                     itemTransform = transformProperty.GetValue(selectedItem.ItemObject) as Transform;
@@ -112,32 +131,53 @@ namespace r.e.p.o_cheat
                     return;
                 }
 
-                itemTransform.position = playerPosition;
-                Hax2.Log1($"Item '{selectedItem.Name}' teleportado localmente para {playerPosition}");
-
-                if (PhotonNetwork.IsConnected)
+                PhotonView itemPhotonView = itemTransform.GetComponent<PhotonView>();
+                if (itemPhotonView == null)
                 {
-                    var photonView = itemTransform.GetComponent<PhotonView>();
-                    if (photonView != null)
+                    Hax2.Log1($"Item '{selectedItem.Name}' não tem PhotonView, teleporte apenas local.");
+                    itemTransform.position = targetPosition;
+                    return;
+                }
+
+                if (itemTransform.GetComponent<ItemTeleportComponent>() == null)
+                {
+                    itemTransform.gameObject.AddComponent<ItemTeleportComponent>();
+                    Hax2.Log1($"Adicionado ItemTeleportComponent ao item '{selectedItem.Name}'");
+                }
+
+                InitializePunManager();
+                if (punManagerPhotonView == null)
+                {
+                    Hax2.Log1("PunManager PhotonView não inicializado, teleporte apenas local.");
+                    itemTransform.position = targetPosition;
+                    return;
+                }
+
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    PerformTeleport(itemTransform, itemPhotonView, targetPosition);
+                }
+                else
+                {
+                    if (!itemPhotonView.IsMine)
                     {
-                        if (photonView.IsMine)
-                        {
-                            photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { playerPosition, itemTransform.rotation });
-                            Hax2.Log1($"Item '{selectedItem.Name}' teleportado e sincronizado via Photon RPC (IsMine).");
-                        }
-                        else
-                        {
-                            photonView.RequestOwnership();
-                            photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { playerPosition, itemTransform.rotation });
-                            Hax2.Log1($"Item '{selectedItem.Name}' teleportado e sincronizado via Photon RPC (IsMine).");
-                            photonView.RPC("RequestItemTeleportRPC", photonView.Owner, new object[] { playerPosition });
-                            Hax2.Log1($"Pedido de teleporte enviado ao dono do item '{selectedItem.Name}' para {playerPosition}");
-                        }
+                        itemPhotonView.RequestOwnership();
+                        Hax2.Log1($"Requested ownership of item '{selectedItem.Name}' (ViewID: {itemPhotonView.ViewID})");
                     }
-                    else
+
+                    int viewID = itemPhotonView.ViewID;
+                    string steamID = SemiFunc.PlayerGetSteamID(SemiFunc.PlayerAvatarLocal());
+                    if (string.IsNullOrEmpty(steamID))
                     {
-                        Hax2.Log1($"Item '{selectedItem.Name}' não tem PhotonView, teleporte apenas local.");
+                        Hax2.Log1("Não foi possível obter SteamID local, teleporte apenas local.");
+                        itemTransform.position = targetPosition;
+                        return;
                     }
+
+                    punManagerPhotonView.RPC("RequestTeleportItemRPC", RpcTarget.MasterClient, viewID, targetPosition, steamID);
+                    Hax2.Log1($"Solicitado teleporte do item '{selectedItem.Name}' (ViewID: {viewID}) para {targetPosition} ao Master Client");
+
+                    itemTransform.position = targetPosition;
                 }
             }
             catch (Exception e)
@@ -146,28 +186,149 @@ namespace r.e.p.o_cheat
             }
         }
 
-        [PunRPC]
-        private static void RequestItemTeleportRPC(Vector3 targetPosition)
+        private static void PerformTeleport(Transform itemTransform, PhotonView itemPhotonView, Vector3 targetPosition)
         {
-            GameObject localPlayer = DebugCheats.GetLocalPlayer();
-            if (localPlayer != null)
+            var transformView = itemTransform.GetComponent<PhotonTransformView>();
+            bool wasTransformViewActive = false;
+            if (transformView != null && transformView.enabled)
             {
-                foreach (var item in DebugCheats.valuableObjects)
+                wasTransformViewActive = true;
+                transformView.enabled = false;
+                Hax2.Log1($"PhotonTransformView desativado temporariamente no item '{itemTransform.name}'");
+            }
+
+            PhotonNetwork.RemoveBufferedRPCs(itemPhotonView.ViewID, "TeleportItemRPC");
+
+            itemTransform.position = targetPosition;
+            Rigidbody rb = itemTransform.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+
+            itemPhotonView.RPC("TeleportItemRPC", RpcTarget.All, targetPosition);
+            Hax2.Log1($"Master Client teleportou item '{itemTransform.name}' (ViewID: {itemPhotonView.ViewID}) para {targetPosition}");
+
+            if (wasTransformViewActive || rb != null)
+            {
+                itemTransform.gameObject.AddComponent<DelayedPhysicsReset>().Setup(rb, transformView);
+            }
+        }
+
+        [PunRPC]
+        private static void RequestTeleportItemRPC(int itemViewID, Vector3 targetPosition, string requesterSteamID)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                PhotonView itemPhotonView = PhotonView.Find(itemViewID);
+                if (itemPhotonView != null)
                 {
-                    var transform = item.GetType().GetProperty("transform", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)?.GetValue(item) as Transform;
-                    if (transform != null)
-                    {
-                        var photonView = transform.GetComponent<PhotonView>();
-                        if (photonView != null && photonView.IsMine)
-                        {
-                            transform.position = targetPosition;
-                            photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { targetPosition, transform.rotation });
-                            Hax2.Log1($"Teleporte de item solicitado recebido e sincronizado para {targetPosition}");
-                            break;
-                        }
-                    }
+                    Transform itemTransform = itemPhotonView.transform;
+                    PerformTeleport(itemTransform, itemPhotonView, targetPosition);
+                    Hax2.Log1($"Master Client processou teleporte do item (ViewID: {itemViewID}) para {targetPosition} a pedido de SteamID: {requesterSteamID}");
+                }
+                else
+                {
+                    Hax2.Log1($"Item com ViewID {itemViewID} não encontrado no Master Client.");
                 }
             }
+        }
+    }
+
+    public class ItemTeleportComponent : MonoBehaviour, IPunOwnershipCallbacks
+    {
+        private PhotonView photonView;
+
+        private void Awake()
+        {
+            photonView = GetComponent<PhotonView>();
+            if (photonView == null)
+            {
+                Hax2.Log1($"PhotonView não encontrado no item '{gameObject.name}', adicionando um novo.");
+                photonView = gameObject.AddComponent<PhotonView>();
+            }
+            PhotonNetwork.AddCallbackTarget(this);
+        }
+
+        private void OnDestroy()
+        {
+            PhotonNetwork.RemoveCallbackTarget(this);
+        }
+
+        [PunRPC]
+        private void TeleportItemRPC(Vector3 targetPosition)
+        {
+            var transformView = GetComponent<PhotonTransformView>();
+            if (transformView != null && transformView.enabled)
+            {
+                transformView.enabled = false;
+                Hax2.Log1($"PhotonTransformView desativado no item '{gameObject.name}' durante teleporte");
+            }
+
+            transform.position = targetPosition;
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+            Hax2.Log1($"Item '{gameObject.name}' sincronizado para {targetPosition} via RPC");
+        }
+
+        public void OnOwnershipRequest(PhotonView targetView, Player requestingPlayer)
+        {
+            if (targetView == photonView)
+            {
+                Hax2.Log1($"Ownership requested for '{gameObject.name}' by player {requestingPlayer.ActorNumber}");
+            }
+        }
+
+        public void OnOwnershipTransfered(PhotonView targetView, Player previousOwner)
+        {
+            if (targetView == photonView)
+            {
+                Hax2.Log1($"Ownership of '{gameObject.name}' transferred from {previousOwner?.ActorNumber} to {targetView.OwnerActorNr}");
+            }
+        }
+
+        public void OnOwnershipTransferFailed(PhotonView targetView, Player senderOfFailedRequest)
+        {
+            if (targetView == photonView)
+            {
+                Hax2.Log1($"Ownership transfer failed for '{gameObject.name}' by player {senderOfFailedRequest.ActorNumber}");
+            }
+        }
+    }
+
+    public class DelayedPhysicsReset : MonoBehaviour
+    {
+        private Rigidbody rb;
+        private PhotonTransformView transformView;
+        private float delay = 1f;
+
+        public void Setup(Rigidbody rigidbody, PhotonTransformView tView = null)
+        {
+            rb = rigidbody;
+            transformView = tView;
+            Invoke(nameof(ResetPhysics), delay);
+        }
+
+        private void ResetPhysics()
+        {
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                Hax2.Log1($"Physics reativada para '{gameObject.name}' após teleporte");
+            }
+            if (transformView != null)
+            {
+                transformView.enabled = true;
+                Hax2.Log1($"PhotonTransformView reativado para '{gameObject.name}' após teleporte");
+            }
+            Destroy(this);
         }
     }
 }

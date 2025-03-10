@@ -181,7 +181,6 @@ namespace r.e.p.o_cheat
                 }
             }
 
-            // Removido o preenchimento de valuableObjects aqui, pois o Hax2 gerencia isso
 
             playerList.Clear();
             var players = SemiFunc.PlayerGetList();

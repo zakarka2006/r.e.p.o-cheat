@@ -5,12 +5,10 @@ using System.Reflection;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
-using Photon;
 using System.Linq;
 
 namespace r.e.p.o_cheat
 {
-
     public static class UIHelper
     {
         private static float x, y, width, height, margin, controlHeight, controlDist, nextControlY;
@@ -38,9 +36,9 @@ namespace r.e.p.o_cheat
             return GUI.Toggle(NextControlRect(customX, customY), value, text);
         }
 
-        public static void Begin(string text, float _x, float _y, float _width, float _height, float _margin, float _controlHeight, float _controlDist)
+        public static void Begin(string text, float _x, float _y, float _width, float _height, float InstructionHeight, float _controlHeight, float _controlDist)
         {
-            x = _x; y = _y; width = _width; height = _height; margin = _margin; controlHeight = _controlHeight; controlDist = _controlDist;
+            x = _x; y = _y; width = _width; height = _height; margin = InstructionHeight; controlHeight = _controlHeight; controlDist = _controlDist;
             nextControlY = y + margin + 60;
             GUI.Box(new Rect(x, y, width, height), text);
             ResetGrid();
@@ -84,6 +82,7 @@ namespace r.e.p.o_cheat
 
             return rect;
         }
+
         private static Rect NextDebugControlRect()
         {
             float controlX = debugX + debugMargin + debugCurrentColumn * (debugWidth / debugColumns);
@@ -97,6 +96,7 @@ namespace r.e.p.o_cheat
             }
             return rect;
         }
+
         public static bool Button(string text, float? customX = null, float? customY = null)
         {
             return GUI.Button(NextControlRect(customX, customY), text);
@@ -107,14 +107,42 @@ namespace r.e.p.o_cheat
             Rect rect = new Rect(customX, customY, width, height);
             return GUI.Button(rect, text);
         }
+
         public static string MakeEnable(string text, bool state) => $"{text}{(state ? "ON" : "OFF")}";
         public static void Label(string text, float? customX = null, float? customY = null) => GUI.Label(NextControlRect(customX, customY), text);
-        public static float Slider(float val, float min, float max, float? customX = null, float? customY = null) => Mathf.Round(GUI.HorizontalSlider(NextControlRect(customX, customY), val, min, max));
+        public static float Slider(float val, float min, float max, float? customX = null, float? customY = null)
+        {
+            Rect rect = NextControlRect(customX, customY);
+
+            // Estilo personalizado para o slider
+            GUIStyle sliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
+            {
+                normal = { background = MakeSolidBackground(new Color(0.7f, 0.7f, 0.7f), 1f) },
+                hover = { background = MakeSolidBackground(new Color(0.8f, 0.8f, 0.8f), 1f) },
+                active = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) } 
+            };
+
+            GUIStyle thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb)
+            {
+                normal = { background = MakeSolidBackground(Color.white, 1f) },
+                hover = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) },
+                active = { background = MakeSolidBackground(Color.green, 1f) }
+            };
+
+            return Mathf.Round(GUI.HorizontalSlider(rect, val, min, max, sliderStyle, thumbStyle));
+        }
+        private static Texture2D MakeSolidBackground(Color color, float alpha)
+        {
+            Texture2D texture = new Texture2D(1, 1);
+            texture.SetPixel(0, 0, new Color(color.r, color.g, color.b, alpha));
+            texture.Apply();
+            return texture;
+        }
         public static void DebugLabel(string text)
         {
             Rect rect = NextDebugControlRect();
             float textHeight = debugLabelStyle.CalcHeight(new GUIContent(text), rect.width);
-            rect.height = Mathf.Max(textHeight, debugControlHeight); 
+            rect.height = Mathf.Max(textHeight, debugControlHeight);
             GUI.Label(rect, text, debugLabelStyle);
             debugNextControlY = rect.y + rect.height + 5;
         }
@@ -160,7 +188,15 @@ namespace r.e.p.o_cheat
         private int selectedItemIndex = 0;
         private Vector2 itemScrollPosition = Vector2.zero;
         private float lastItemListUpdateTime = 0f;
-        private const float itemListUpdateInterval = 2f; 
+        private const float itemListUpdateInterval = 2f;
+        private bool isDragging = false;
+        private Vector2 dragOffset;
+        private float menuX = 50f;
+        private float menuY = 50f;
+        private const float titleBarHeight = 30f;
+
+        private static bool cursorStateInitialized = false;
+
         public void Start()
         {
             Cursor.visible = showMenu;
@@ -188,6 +224,7 @@ namespace r.e.p.o_cheat
 
         public void Update()
         {
+            Strength.UpdateStrength();
             if (Time.time >= nextUpdateTime)
             {
                 DebugCheats.UpdateEnemyList();
@@ -195,7 +232,7 @@ namespace r.e.p.o_cheat
                 nextUpdateTime = Time.time + updateInterval;
             }
             if (Time.time - lastItemListUpdateTime > itemListUpdateInterval)
-            { 
+            {
                 UpdateItemList();
                 itemList = ItemTeleport.GetItemList();
                 lastItemListUpdateTime = Time.time;
@@ -205,13 +242,11 @@ namespace r.e.p.o_cheat
                 PlayerController.RemoveSpeed(sliderValue);
                 oldSliderValue = sliderValue;
             }
-
             if (oldSliderValueStrength != sliderValueStrength)
             {
-                PlayerController.MaxStrength();
+                Strength.MaxStrength();
                 oldSliderValueStrength = sliderValueStrength;
             }
-
             if (playerColor.isRandomizing) playerColor.colorRandomizer();
 
             if (Input.GetKeyDown(KeyCode.Delete))
@@ -229,6 +264,7 @@ namespace r.e.p.o_cheat
                 if (Time.time - debugLogMessages[i].timestamp > 3f) debugLogMessages.RemoveAt(i);
             }
         }
+
         private void UpdateItemList()
         {
             DebugCheats.valuableObjects.Clear();
@@ -241,12 +277,13 @@ namespace r.e.p.o_cheat
             itemList = ItemTeleport.GetItemList();
             Hax2.Log1($"Lista de itens atualizada: {itemList.Count} itens encontrados.");
         }
+
         private void UpdateEnemyList()
         {
             enemyNames.Clear();
             enemyList.Clear();
 
-            DebugCheats.UpdateEnemyList(); 
+            DebugCheats.UpdateEnemyList();
             enemyList = DebugCheats.enemyList;
 
             foreach (var enemy in enemyList)
@@ -268,6 +305,49 @@ namespace r.e.p.o_cheat
             }
 
             if (enemyNames.Count == 0) enemyNames.Add("No enemies found");
+        }
+        private void TeleportEnemyToMe()
+        {
+            if (selectedEnemyIndex < 0 || selectedEnemyIndex >= enemyList.Count)
+            {
+                Log1("Índice de inimigo inválido!");
+                return;
+            }
+
+            var selectedEnemy = enemyList[selectedEnemyIndex];
+            if (selectedEnemy == null)
+            {
+                Log1("Inimigo selecionado é nulo!");
+                return;
+            }
+
+            try
+            {
+                GameObject localPlayer = DebugCheats.GetLocalPlayer();
+                if (localPlayer == null)
+                {
+                    Log1("Jogador local não encontrado!");
+                    return;
+                }
+
+                Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
+
+                var photonView = selectedEnemy.GetComponent<PhotonView>();
+                if (PhotonNetwork.IsConnected && photonView != null)
+                {
+                    photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { targetPosition, selectedEnemy.transform.rotation });
+                    Log1($"RPC 'SpawnRPC' enviado para teleportar {enemyNames[selectedEnemyIndex]} até {targetPosition}");
+                }
+                else
+                {
+                    selectedEnemy.transform.position = targetPosition;
+                    Log1($"Inimigo {enemyNames[selectedEnemyIndex]} teleportado localmente para {targetPosition}");
+                }
+            }
+            catch (Exception e)
+            {
+                Log1($"Erro ao teleportar inimigo {enemyNames[selectedEnemyIndex]}: {e.Message}");
+            }
         }
         private void KillSelectedEnemy()
         {
@@ -315,6 +395,7 @@ namespace r.e.p.o_cheat
                 Log1($"Erro ao matar inimigo {enemyNames[selectedEnemyIndex]}: {e.Message}");
             }
         }
+
         private int GetEnemyHealth(Enemy enemy)
         {
             try
@@ -336,6 +417,7 @@ namespace r.e.p.o_cheat
                 return -1;
             }
         }
+
         private void UpdatePlayerList()
         {
             var fakePlayers = playerNames.Where(name => name.Contains("FakePlayer")).ToList();
@@ -411,7 +493,6 @@ namespace r.e.p.o_cheat
 
             try
             {
-               
                 var playerDeathHeadField = selectedPlayer.GetType().GetField("playerDeathHead", BindingFlags.Public | BindingFlags.Instance);
                 if (playerDeathHeadField != null)
                 {
@@ -445,7 +526,6 @@ namespace r.e.p.o_cheat
                     Log1("Campo 'playerDeathHead' não encontrado.");
                 }
 
-          
                 var playerHealthField = selectedPlayer.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (playerHealthField != null)
                 {
@@ -461,7 +541,6 @@ namespace r.e.p.o_cheat
 
                         if (healthField != null)
                         {
-                          
                             healthField.SetValue(playerHealthInstance, maxHealth);
                             Log1($"Saúde definida diretamente para {maxHealth} via healthField.");
                         }
@@ -542,6 +621,7 @@ namespace r.e.p.o_cheat
             }
             catch (Exception e) { Log1($"Erro ao tentar matar {playerNames[selectedPlayerIndex]}: {e.Message}"); }
         }
+
         private void SendSelectedPlayerToVoid()
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
@@ -591,7 +671,6 @@ namespace r.e.p.o_cheat
                 transform.position = voidPosition;
                 Log1($"Jogador {playerNames[selectedPlayerIndex]} enviado localmente para o void: {voidPosition}");
 
-                // Sincronizar via Photon, se conectado
                 if (PhotonNetwork.IsConnected && photonView != null)
                 {
                     photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { voidPosition, transform.rotation });
@@ -607,8 +686,10 @@ namespace r.e.p.o_cheat
                 Log1($"Erro ao enviar {playerNames[selectedPlayerIndex]} para o void: {e.Message}");
             }
         }
+
         public void OnGUI()
         {
+
             if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool) DebugCheats.DrawESP();
 
             GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
@@ -616,37 +697,86 @@ namespace r.e.p.o_cheat
 
             if (showMenu)
             {
-                UIHelper.Begin("DARK Menu", 50, 50, 600, 730, 30, 30, 10);
+                GUIStyle overlayStyle = new GUIStyle();
+                overlayStyle.normal.background = MakeSolidBackground(Color.clear, 0f);
+                GUI.Box(new Rect(0, 0, Screen.width, Screen.height), GUIContent.none, overlayStyle);
 
-                float tabWidth = 90f; 
-                float tabHeight = 40f; 
-                float spacing = 10f; 
-                float totalWidth = 6 * tabWidth + 5 * spacing; 
-                float startX = 50 + (600 - totalWidth) / 2f; 
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+
+                Rect menuRect = new Rect(menuX, menuY, 600, 730);
+                Rect titleRect = new Rect(menuX, menuY, 600, titleBarHeight);
+
+                GUIStyle menuStyle = new GUIStyle(GUI.skin.box)
+                {
+                    normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
+                    fontSize = 16,
+                    alignment = TextAnchor.MiddleCenter,
+                    padding = new RectOffset(10, 10, 10, 10),
+                    border = new RectOffset(5, 5, 5, 5)
+                };
+                GUI.Box(menuRect, "", menuStyle);
+                UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
+
+                // Lógica de arrastar
+                if (Event.current.type == EventType.MouseDown && titleRect.Contains(Event.current.mousePosition))
+                {
+                    isDragging = true;
+                    dragOffset = Event.current.mousePosition - new Vector2(menuX, menuY);
+                }
+                if (Event.current.type == EventType.MouseUp)
+                {
+                    isDragging = false;
+                }
+                if (isDragging && Event.current.type == EventType.MouseDrag)
+                {
+                    Vector2 newPosition = Event.current.mousePosition - dragOffset;
+                    menuX = Mathf.Clamp(newPosition.x, 0, Screen.width - 600);
+                    menuY = Mathf.Clamp(newPosition.y, 0, Screen.height - 730);
+                }
+
+                // Abas
+                float tabWidth = 90f;
+                float tabHeight = 40f;
+                float spacing = 10f;
+                float totalWidth = 6 * tabWidth + 5 * spacing;
+                float startX = menuX + (600 - totalWidth) / 2f;
 
                 GUIStyle tabStyle = new GUIStyle(GUI.skin.button)
                 {
-                    fontSize = 14, 
+                    fontSize = 14,
                     alignment = TextAnchor.MiddleCenter,
-                    wordWrap = false
+                    normal = { textColor = Color.white, background = MakeSolidBackground(Color.gray, 1f) },
+                    hover = { textColor = Color.yellow, background = MakeSolidBackground(new Color(0.2f, 0.2f, 0.2f), 1f) },
+                    active = { textColor = Color.green, background = MakeSolidBackground(Color.black, 1f) }
+                };
+                GUIStyle selectedTabStyle = new GUIStyle(tabStyle)
+                {
+                    normal = { textColor = Color.white, background = MakeSolidBackground(new Color(0.35f, 0.35f, 0.35f), 1f) }
                 };
 
-                if (GUI.Button(new Rect(startX, 80, tabWidth, tabHeight), "Player", tabStyle)) currentCategory = MenuCategory.Player;
-                if (GUI.Button(new Rect(startX + tabWidth + spacing, 80, tabWidth, tabHeight), "ESP", tabStyle)) currentCategory = MenuCategory.ESP;
-                if (GUI.Button(new Rect(startX + 2 * (tabWidth + spacing), 80, tabWidth, tabHeight), "Combat", tabStyle)) currentCategory = MenuCategory.Combat;
-                if (GUI.Button(new Rect(startX + 3 * (tabWidth + spacing), 80, tabWidth, tabHeight), "Misc", tabStyle)) currentCategory = MenuCategory.Misc;
-                if (GUI.Button(new Rect(startX + 4 * (tabWidth + spacing), 80, tabWidth, tabHeight), "Enemies", tabStyle)) currentCategory = MenuCategory.Enemies;
-                if (GUI.Button(new Rect(startX + 5 * (tabWidth + spacing), 80, tabWidth, tabHeight), "Items", tabStyle)) currentCategory = MenuCategory.Items;
+                if (GUI.Button(new Rect(startX, menuY + 30, tabWidth, tabHeight), "Player", currentCategory == MenuCategory.Player ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.Player;
+                if (GUI.Button(new Rect(startX + tabWidth + spacing, menuY + 30, tabWidth, tabHeight), "ESP", currentCategory == MenuCategory.ESP ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.ESP;
+                if (GUI.Button(new Rect(startX + 2 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Combat", currentCategory == MenuCategory.Combat ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.Combat;
+                if (GUI.Button(new Rect(startX + 3 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Misc", currentCategory == MenuCategory.Misc ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.Misc;
+                if (GUI.Button(new Rect(startX + 4 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Enemies", currentCategory == MenuCategory.Enemies ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.Enemies;
+                if (GUI.Button(new Rect(startX + 5 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Items", currentCategory == MenuCategory.Items ? selectedTabStyle : tabStyle))
+                    currentCategory = MenuCategory.Items;
 
-                UIHelper.Label("Press F5 to reload! Press DEL to close! Press F10 to unload!", 70, 120);
-
+                GUIStyle instructionStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, normal = { textColor = Color.white } };
+                GUI.Label(new Rect(menuX + 10, menuY + 75, 580, 20), "Press F5 to reload! Press DEL to close! Press F10 to unload!", instructionStyle);
+                // Conteúdo das abas
                 switch (currentCategory)
                 {
                     case MenuCategory.Player:
                         UpdatePlayerList();
-                        UIHelper.Label("Select a player:", 70, 160);
-    
-                          playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 540, 150), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
+                        UIHelper.Label("Select a player:", menuX + 30, menuY + 95);
+                        playerScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 150), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
                         for (int i = 0; i < playerNames.Count; i++)
                         {
                             if (i == selectedPlayerIndex) GUI.color = Color.white;
@@ -656,7 +786,7 @@ namespace r.e.p.o_cheat
                         }
                         GUI.EndScrollView();
 
-                        if (UIHelper.Button("Heal Player", 70, 340))
+                        if (UIHelper.Button("Heal Player", menuX + 30, menuY + 275))
                         {
                             if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
                             {
@@ -668,7 +798,7 @@ namespace r.e.p.o_cheat
                                 Hax2.Log1("Nenhum jogador válido selecionado para curar!");
                             }
                         }
-                        if (UIHelper.Button("Damage Player", 70, 380))
+                        if (UIHelper.Button("Damage Player", menuX + 30, menuY + 315))
                         {
                             if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
                             {
@@ -680,27 +810,26 @@ namespace r.e.p.o_cheat
                                 Hax2.Log1("Nenhum jogador válido selecionado para causar dano!");
                             }
                         }
-                        bool newHealState = UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, 70, 420);
+                        bool newHealState = UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 355);
                         if (newHealState != infiniteHealthActive) { infiniteHealthActive = newHealState; Health_Player.MaxHealth(); }
-                        bool newStaminaState = UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, 70, 460);
+                        bool newStaminaState = UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 395);
                         if (newStaminaState != stamineState) { stamineState = newStaminaState; PlayerController.MaxStamina(); Hax2.Log1("God mode toggled: " + stamineState); }
-                        bool newGodModeState = UIHelper.ButtonBool("Toggle God Mode", godModeActive, 70, 500);
+                        bool newGodModeState = UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 435);
                         if (newGodModeState != godModeActive) { PlayerController.GodMode(); godModeActive = newGodModeState; Hax2.Log1("God mode toggled: " + godModeActive); }
 
-                        UIHelper.Label("Speed Value " + sliderValue, 70, 540);
+                        UIHelper.Label("Speed Value " + sliderValue, menuX + 30, menuY + 475);
                         oldSliderValue = sliderValue;
-                        sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, 70, 560);
+                        sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, menuX + 30, menuY + 495);
 
-                        UIHelper.Label("Strength Value: " + sliderValueStrength, 70, 590);
+                        UIHelper.Label("Strength Value: " + sliderValueStrength, menuX + 30, menuY + 515);
                         oldSliderValueStrength = sliderValueStrength;
-                        sliderValueStrength = UIHelper.Slider(sliderValueStrength, 1f, 30f, 70, 610);
+                        sliderValueStrength = UIHelper.Slider(sliderValueStrength, 1f, 100f, menuX + 30, menuY + 535);
 
-                        // Controles para Stamina Recharge
-                        UIHelper.Label("Stamina Recharge Delay: " + Hax2.staminaRechargeDelay, 70, 640);
-                        Hax2.staminaRechargeDelay = UIHelper.Slider(Hax2.staminaRechargeDelay, 0f, 2f, 70, 660);
+                        UIHelper.Label("Stamina Recharge Delay: " + Hax2.staminaRechargeDelay, menuX + 30, menuY + 565);
+                        Hax2.staminaRechargeDelay = UIHelper.Slider(Hax2.staminaRechargeDelay, 0f, 10f, menuX + 30, menuY + 586);
 
-                        UIHelper.Label("Stamina Recharge Rate: " + Hax2.staminaRechargeRate, 70, 690);
-                        Hax2.staminaRechargeRate = UIHelper.Slider(Hax2.staminaRechargeRate, 0.1f, 20f, 70, 710);
+                        UIHelper.Label("Stamina Recharge Rate: " + Hax2.staminaRechargeRate, menuX + 30, menuY + 605);
+                        Hax2.staminaRechargeRate = UIHelper.Slider(Hax2.staminaRechargeRate, 1f, 20f, menuX + 30, menuY + 625);
 
                         if (Hax2.staminaRechargeDelay != oldStaminaRechargeDelay || Hax2.staminaRechargeRate != oldStaminaRechargeRate)
                         {
@@ -712,49 +841,48 @@ namespace r.e.p.o_cheat
                         break;
 
                     case MenuCategory.ESP:
-                        DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, 70, 160);
+                        DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 105);
 
                         if (DebugCheats.drawEspBool)
                         {
-                            DebugCheats.showEnemyNames = UIHelper.Checkbox("Show Enemy Names", DebugCheats.showEnemyNames, 100, 190);
-                            DebugCheats.showEnemyDistance = UIHelper.Checkbox("Show Enemy Distance", DebugCheats.showEnemyDistance, 100, 220);
+                            DebugCheats.showEnemyNames = UIHelper.Checkbox("Show Enemy Names", DebugCheats.showEnemyNames, menuX + 50, menuY + 125);
+                            DebugCheats.showEnemyDistance = UIHelper.Checkbox("Show Enemy Distance", DebugCheats.showEnemyDistance, menuX + 50, menuY + 155);
                         }
 
-                        DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, 70, 260);
+                        DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 185);
 
                         if (DebugCheats.drawItemEspBool)
                         {
-                            DebugCheats.showItemNames = UIHelper.Checkbox("Show Item Names", DebugCheats.showItemNames, 100, 290);
-                            DebugCheats.showItemDistance = UIHelper.Checkbox("Show Item Distance", DebugCheats.showItemDistance, 100, 320);
-                            DebugCheats.showItemValue = UIHelper.Checkbox("Show Item Value", DebugCheats.showItemValue, 100, 350);
-                            DebugCheats.draw3DItemEspBool = UIHelper.Checkbox("3D Item ESP", DebugCheats.draw3DItemEspBool, 100, 380);
+                            DebugCheats.showItemNames = UIHelper.Checkbox("Show Item Names", DebugCheats.showItemNames, menuX + 50, menuY + 205);
+                            DebugCheats.showItemDistance = UIHelper.Checkbox("Show Item Distance", DebugCheats.showItemDistance, menuX + 50, menuY + 235);
+                            DebugCheats.showItemValue = UIHelper.Checkbox("Show Item Value", DebugCheats.showItemValue, menuX + 50, menuY + 265);
+                            DebugCheats.draw3DItemEspBool = UIHelper.Checkbox("3D Item ESP", DebugCheats.draw3DItemEspBool, menuX + 50, menuY + 295);
                         }
 
-                        DebugCheats.drawExtractionPointEspBool = UIHelper.Checkbox("Extraction ESP", DebugCheats.drawExtractionPointEspBool, 70, 410);
+                        DebugCheats.drawExtractionPointEspBool = UIHelper.Checkbox("Extraction ESP", DebugCheats.drawExtractionPointEspBool, menuX + 30, menuY + 325);
 
                         if (DebugCheats.drawExtractionPointEspBool)
                         {
-                            DebugCheats.showExtractionNames = UIHelper.Checkbox("Show Extraction Names", DebugCheats.showExtractionNames, 100, 440);
-                            DebugCheats.showExtractionDistance = UIHelper.Checkbox("Show Extraction Distance", DebugCheats.showExtractionDistance, 100, 470);
+                            DebugCheats.showExtractionNames = UIHelper.Checkbox("Show Extraction Names", DebugCheats.showExtractionNames, menuX + 50, menuY + 355);
+                            DebugCheats.showExtractionDistance = UIHelper.Checkbox("Show Extraction Distance", DebugCheats.showExtractionDistance, menuX + 50, menuY + 385);
                         }
 
-                        DebugCheats.drawPlayerEspBool = UIHelper.Checkbox("2D Player ESP", DebugCheats.drawPlayerEspBool, 70, 500);
-                        DebugCheats.draw3DPlayerEspBool = UIHelper.Checkbox("3D Player ESP", DebugCheats.draw3DPlayerEspBool, 70, 530);
+                        DebugCheats.drawPlayerEspBool = UIHelper.Checkbox("2D Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 420);
+                        DebugCheats.draw3DPlayerEspBool = UIHelper.Checkbox("3D Player ESP", DebugCheats.draw3DPlayerEspBool, menuX + 30, menuY + 450);
 
                         if (DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool)
                         {
-                            DebugCheats.showPlayerNames = UIHelper.Checkbox("Show Player Names", DebugCheats.showPlayerNames, 100, 560);
-                            DebugCheats.showPlayerDistance = UIHelper.Checkbox("Show Player Distance", DebugCheats.showPlayerDistance, 100, 590);
-                            DebugCheats.showPlayerHP = UIHelper.Checkbox("Show Player HP", DebugCheats.showPlayerHP, 100, 620);
+                            DebugCheats.showPlayerNames = UIHelper.Checkbox("Show Player Names", DebugCheats.showPlayerNames, menuX + 50, menuY + 480);
+                            DebugCheats.showPlayerDistance = UIHelper.Checkbox("Show Player Distance", DebugCheats.showPlayerDistance, menuX + 50, menuY + 510);
+                            DebugCheats.showPlayerHP = UIHelper.Checkbox("Show Player HP", DebugCheats.showPlayerHP, menuX + 50, menuY + 540);
                         }
                         break;
 
                     case MenuCategory.Combat:
-                        // ... (Código de Combat inalterado)
                         UpdatePlayerList();
-                        UIHelper.Label("Select a player:", 70, 160);
+                        UIHelper.Label("Select a player:", menuX + 30, menuY + 95);
 
-                        playerScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 540, 200), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
+                        playerScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
                         for (int i = 0; i < playerNames.Count; i++)
                         {
                             if (i == selectedPlayerIndex) GUI.color = Color.white;
@@ -764,15 +892,15 @@ namespace r.e.p.o_cheat
                         }
                         GUI.EndScrollView();
 
-                        if (UIHelper.Button("Revive", 70, 390)) { ReviveSelectedPlayer(); Hax2.Log1("Player revived: " + playerNames[selectedPlayerIndex]); }
-                        if (UIHelper.Button("Kill Selected Player", 70, 430)) { KillSelectedPlayer(); Hax2.Log1("Tentativa de matar o jogador selecionado realizada."); }
-                        if (UIHelper.Button("Send Player To Void", 70, 470)) SendSelectedPlayerToVoid();
-                        if (UIHelper.Button("Teleport Player To Me", 70, 510)) { Teleport.TeleportPlayerToMe(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado {playerNames[selectedPlayerIndex]} até você."); }
-                        if (UIHelper.Button("Teleport Me To Player", 70, 550)) { Teleport.TeleportMeToPlayer(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado você até {playerNames[selectedPlayerIndex]}."); }
+                        if (UIHelper.Button("Revive", menuX + 30, menuY + 330)) { ReviveSelectedPlayer(); Hax2.Log1("Player revived: " + playerNames[selectedPlayerIndex]); }
+                        if (UIHelper.Button("Kill Selected Player", menuX + 30, menuY + 370)) { KillSelectedPlayer(); Hax2.Log1("Tentativa de matar o jogador selecionado realizada."); }
+                        if (UIHelper.Button("Send Player To Void", menuX + 30, menuY + 410)) SendSelectedPlayerToVoid();
+                        if (UIHelper.Button("Teleport Player To Me", menuX + 30, menuY + 450)) { Teleport.TeleportPlayerToMe(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado {playerNames[selectedPlayerIndex]} até você."); }
+                        if (UIHelper.Button("Teleport Me To Player", menuX + 30, menuY + 490)) { Teleport.TeleportMeToPlayer(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado você até {playerNames[selectedPlayerIndex]}."); }
                         break;
 
                     case MenuCategory.Misc:
-                        if (UIHelper.Button("Spawn Money", 70, 160))
+                        if (UIHelper.Button("Spawn Money", menuX + 30, menuY + 105))
                         {
                             Hax2.Log1("Botão 'Spawn Money' clicado!");
                             GameObject localPlayer = DebugCheats.GetLocalPlayer();
@@ -786,20 +914,19 @@ namespace r.e.p.o_cheat
                             ItemSpawner.SpawnItem(targetPosition);
                             Hax2.Log1("Money spawned.");
                         }
-                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, 70, 200);
+                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, menuX + 30, menuY + 145);
                         if (newPlayerColorState != playerColor.isRandomizing)
                         {
                             playerColor.isRandomizing = newPlayerColorState;
                             Hax2.Log1("Randomize toggled: " + playerColor.isRandomizing);
                         }
-
                         break;
 
-                    case MenuCategory.Enemies: // Nova aba "Enemies"
+                    case MenuCategory.Enemies:
                         UpdateEnemyList();
-                        UIHelper.Label("Select an enemy:", 70, 160);
+                        UIHelper.Label("Select an enemy:", menuX + 30, menuY + 95);
 
-                        enemyScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 540, 200), enemyScrollPosition, new Rect(0, 0, 520, enemyNames.Count * 35), false, true);
+                        enemyScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), enemyScrollPosition, new Rect(0, 0, 520, enemyNames.Count * 35), false, true);
                         for (int i = 0; i < enemyNames.Count; i++)
                         {
                             if (i == selectedEnemyIndex) GUI.color = Color.white;
@@ -809,21 +936,27 @@ namespace r.e.p.o_cheat
                         }
                         GUI.EndScrollView();
 
-                        if (UIHelper.Button("Kill Selected Enemy", 70, 390))
+                        if (UIHelper.Button("Kill Selected Enemy", menuX + 30, menuY + 330))
                         {
                             KillSelectedEnemy();
                             Hax2.Log1($"Tentativa de matar o inimigo selecionado realizada: {enemyNames[selectedEnemyIndex]}");
                         }
-                        if (UIHelper.Button("Kill All Enemies", 70, 430))
+                        if (UIHelper.Button("Kill All Enemies", menuX + 30, menuY + 370))
                         {
                             DebugCheats.KillAllEnemies();
                             Hax2.Log1("Tentativa de matar todos os inimigos realizada.");
                         }
+                        if (UIHelper.Button("Teleport Enemy to Me", menuX + 30, menuY + 410)) // Novo botão
+                        {
+                            TeleportEnemyToMe();
+                            Hax2.Log1($"Tentativa de teleportar {enemyNames[selectedEnemyIndex]} até você realizada.");
+                        }
                         break;
-                    case MenuCategory.Items:
-                        UIHelper.Label("Select an item:", 70, 160);
 
-                        itemScrollPosition = GUI.BeginScrollView(new Rect(70, 180, 540, 200), itemScrollPosition, new Rect(0, 0, 520, itemList.Count * 35), false, true);
+                    case MenuCategory.Items:
+                        UIHelper.Label("Select an item:", menuX + 30, menuY + 95);
+
+                        itemScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), itemScrollPosition, new Rect(0, 0, 520, itemList.Count * 35), false, true);
                         for (int i = 0; i < itemList.Count; i++)
                         {
                             if (i == selectedItemIndex) GUI.color = Color.white;
@@ -836,7 +969,7 @@ namespace r.e.p.o_cheat
                         }
                         GUI.EndScrollView();
 
-                        if (UIHelper.Button("Teleport Item to Me", 70, 390))
+                        if (UIHelper.Button("Teleport Item to Me (Host Only for now)", menuX + 30, menuY + 330))
                         {
                             ItemTeleport.TeleportItemToMe(itemList[selectedItemIndex]);
                             Hax2.Log1($"Teleported item: {itemList[selectedItemIndex].Name}");
@@ -848,13 +981,20 @@ namespace r.e.p.o_cheat
             if (showDebugMenu)
             {
                 UIHelper.ResetDebugGrid();
-                UIHelper.BeginDebugMenu("Debug Log", 600, 50, 500, 500, 30, 30, 10);
-                UIHelper.Label("Press F12 to close debug log", 630, 70);
+                UIHelper.BeginDebugMenu("Debug Log", 800, 50, 500, 500, 30, 30, 10);
+                UIHelper.Label("Press F12 to close debug log", 830, 70);
                 foreach (var logMessage in debugLogMessages)
                 {
                     if (!string.IsNullOrEmpty(logMessage.message)) UIHelper.DebugLabel(logMessage.message);
                 }
             }
+        }
+        private Texture2D MakeSolidBackground(Color color, float alpha)
+        {
+            Texture2D texture = new Texture2D(1, 1);
+            texture.SetPixel(0, 0, new Color(color.r, color.g, color.b, alpha));
+            texture.Apply();
+            return texture;
         }
 
         public static void Log1(string message) => debugLogMessages.Add(new DebugLogMessage(message, Time.time));
