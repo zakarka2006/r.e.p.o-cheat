@@ -860,16 +860,16 @@ namespace r.e.p.o_cheat
 
 public void OnGUI()
 {
-    if (!showMenu) return; // Prevent unnecessary rendering if menu is closed
+    if (!showMenu) return;
 
-    // Only update UI elements when necessary
+    // Update UI cache if needed
     if (uiNeedsUpdate)
     {
         GenerateUICache();
         uiNeedsUpdate = false;
     }
 
-    // Draw ESP only when enabled
+    // Draw ESP if enabled
     if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool)
     {
         DebugCheats.DrawESP();
@@ -916,11 +916,11 @@ public void OnGUI()
             if (uiElement.Invoke()) uiNeedsUpdate = true; // Refresh UI on button press
         }
 
-        // Debug Menu
+        // Debug Menu (Optimized)
         if (showDebugMenu)
         {
             GUI.Box(new Rect(400, 50, 300, 400), "Debug Logs");
-            for (int i = 0; i < debugLogMessages.Count && i < 50; i++) // Limit logs to prevent memory overflow
+            for (int i = 0; i < debugLogMessages.Count && i < 50; i++) // **Limit logs to 50 entries**
             {
                 GUI.Label(new Rect(410, 70 + (i * 20), 280, 20), debugLogMessages[i].message);
             }
@@ -928,27 +928,40 @@ public void OnGUI()
     }
 }
 
-// Cached UI Elements (Only Regenerates When Needed)
+// **Generates UI Elements Dynamically (Buttons, Sliders, Toggles)**
 private void GenerateUICache()
 {
     cachedUIElements.Clear();
-    cachedUIElements.Add(() => UIHelper.Button("God Mode", menuX + 30, menuY + 80, () => { PlayerController.GodMode(); return true; }));
-    cachedUIElements.Add(() => UIHelper.Button("Teleport to Me", menuX + 30, menuY + 120, () => { Teleport.TeleportPlayerToMe(); return true; }));
-    cachedUIElements.Add(() => UIHelper.Button("Spawn Items", menuX + 30, menuY + 160, () => { ItemSpawner.SpawnItem(Vector3.zero); return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, (newState) => { PlayerController.GodMode(); godModeActive = newState; return true; }));
+
+    // **Player Features**
+    cachedUIElements.Add(() => UIHelper.Button("God Mode", menuX + 30, menuY + 80, 280, 30, () => { PlayerController.GodMode(); return true; }));
+    cachedUIElements.Add(() => UIHelper.Button("Teleport to Me", menuX + 30, menuY + 120, 280, 30, () => { Teleport.TeleportPlayerToMe(); return true; }));
+    cachedUIElements.Add(() => UIHelper.Button("Spawn Items", menuX + 30, menuY + 160, 280, 30, () => { ItemSpawner.SpawnItem(Vector3.zero); return true; }));
+
+    // **Toggles**
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, 280, 30, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, 280, 30, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, 280, 30, (newState) => { PlayerController.GodMode(); godModeActive = newState; return true; }));
+
+    // **ESP Toggles**
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 320, 280, 30, (newState) => { DebugCheats.drawEspBool = newState; return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 360, 280, 30, (newState) => { DebugCheats.drawItemEspBool = newState; return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 400, 280, 30, (newState) => { DebugCheats.drawPlayerEspBool = newState; return true; }));
+
+    // **Speed & Stamina Controls**
+    cachedUIElements.Add(() => UIHelper.Slider("Speed", ref sliderValue, 1f, 30f, menuX + 30, menuY + 440, 280, 30, (newValue) => { PlayerController.RemoveSpeed(newValue); return true; }));
+    cachedUIElements.Add(() => UIHelper.Slider("Stamina Recharge", ref Hax2.staminaRechargeRate, 1f, 20f, menuX + 30, menuY + 480, 280, 30, (newValue) => { PlayerController.DecreaseStaminaRechargeDelay(Hax2.staminaRechargeDelay, newValue); return true; }));
 }
 
-        // Call this when UI elements need updating
-        private void RequestUIUpdate()
-        {
+    // Call this when UI elements need updating
+    private void RequestUIUpdate()
+    {
         uiNeedsUpdate = true;
-        }
+    }
 
-        // Variables for Optimization
-        private bool uiNeedsUpdate = true;
-        private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
+    // Variables for Optimization
+    private bool uiNeedsUpdate = true;
+    private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
 
         private Texture2D MakeSolidBackground(Color color, float alpha)
         {
