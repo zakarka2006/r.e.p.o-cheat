@@ -858,376 +858,98 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public void OnGUI()
+public void OnGUI()
+{
+    if (!showMenu) return; // Prevent unnecessary rendering if menu is closed
+
+    // Only update UI elements when necessary
+    if (uiNeedsUpdate)
+    {
+        GenerateUICache();
+        uiNeedsUpdate = false;
+    }
+
+    // Draw ESP only when enabled
+    if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool)
+    {
+        DebugCheats.DrawESP();
+    }
+
+    // Cheat Title
+    GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
+    GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
+
+    if (showMenu)
+    {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // Menu Background
+        GUIStyle menuStyle = new GUIStyle(GUI.skin.box)
         {
+            normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
+            fontSize = 16,
+            alignment = TextAnchor.MiddleCenter
+        };
+        GUI.Box(new Rect(menuX, menuY, 600, 730), "", menuStyle);
 
-            if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool) DebugCheats.DrawESP();
+        UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
 
-            GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
-            GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
+        // Menu Dragging
+        Rect titleRect = new Rect(menuX, menuY, 600, titleBarHeight);
+        if (Event.current.type == EventType.MouseDown && titleRect.Contains(Event.current.mousePosition))
+        {
+            isDragging = true;
+            dragOffset = Event.current.mousePosition - new Vector2(menuX, menuY);
+        }
+        if (Event.current.type == EventType.MouseUp) isDragging = false;
+        if (isDragging && Event.current.type == EventType.MouseDrag)
+        {
+            Vector2 newPosition = Event.current.mousePosition - dragOffset;
+            menuX = Mathf.Clamp(newPosition.x, 0, Screen.width - 600);
+            menuY = Mathf.Clamp(newPosition.y, 0, Screen.height - 730);
+        }
 
-            if (showMenu)
+        // Render Cached UI Elements
+        foreach (var uiElement in cachedUIElements)
+        {
+            if (uiElement.Invoke()) uiNeedsUpdate = true; // Refresh UI on button press
+        }
+
+        // Debug Menu
+        if (showDebugMenu)
+        {
+            GUI.Box(new Rect(400, 50, 300, 400), "Debug Logs");
+            for (int i = 0; i < debugLogMessages.Count && i < 50; i++) // Limit logs to prevent memory overflow
             {
-                GUIStyle overlayStyle = new GUIStyle();
-                overlayStyle.normal.background = MakeSolidBackground(Color.clear, 0f);
-                GUI.Box(new Rect(0, 0, Screen.width, Screen.height), GUIContent.none, overlayStyle);
-
-                Cursor.visible = true;
-                Cursor.lockState = CursorLockMode.None;
-
-                Rect menuRect = new Rect(menuX, menuY, 600, 730);
-                Rect titleRect = new Rect(menuX, menuY, 600, titleBarHeight);
-
-                GUIStyle menuStyle = new GUIStyle(GUI.skin.box)
-                {
-                    normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
-                    fontSize = 16,
-                    alignment = TextAnchor.MiddleCenter,
-                    padding = new RectOffset(10, 10, 10, 10),
-                    border = new RectOffset(5, 5, 5, 5)
-                };
-                GUI.Box(menuRect, "", menuStyle);
-                UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
-
-                if (Event.current.type == EventType.MouseDown && titleRect.Contains(Event.current.mousePosition))
-                {
-                    isDragging = true;
-                    dragOffset = Event.current.mousePosition - new Vector2(menuX, menuY);
-                }
-                if (Event.current.type == EventType.MouseUp)
-                {
-                    isDragging = false;
-                }
-                if (isDragging && Event.current.type == EventType.MouseDrag)
-                {
-                    Vector2 newPosition = Event.current.mousePosition - dragOffset;
-                    menuX = Mathf.Clamp(newPosition.x, 0, Screen.width - 600);
-                    menuY = Mathf.Clamp(newPosition.y, 0, Screen.height - 730);
-                }
-
-                float tabWidth = 90f;
-                float tabHeight = 40f;
-                float spacing = 10f;
-                float totalWidth = 6 * tabWidth + 5 * spacing;
-                float startX = menuX + (600 - totalWidth) / 2f;
-
-                GUIStyle tabStyle = new GUIStyle(GUI.skin.button)
-                {
-                    fontSize = 14,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = Color.white, background = MakeSolidBackground(Color.gray, 1f) },
-                    hover = { textColor = Color.yellow, background = MakeSolidBackground(new Color(0.2f, 0.2f, 0.2f), 1f) },
-                    active = { textColor = Color.green, background = MakeSolidBackground(Color.black, 1f) }
-                };
-                GUIStyle selectedTabStyle = new GUIStyle(tabStyle)
-                {
-                    normal = { textColor = Color.white, background = MakeSolidBackground(new Color(0.35f, 0.35f, 0.35f), 1f) }
-                };
-
-                if (GUI.Button(new Rect(startX, menuY + 30, tabWidth, tabHeight), "Player", currentCategory == MenuCategory.Player ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.Player;
-                if (GUI.Button(new Rect(startX + tabWidth + spacing, menuY + 30, tabWidth, tabHeight), "ESP", currentCategory == MenuCategory.ESP ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.ESP;
-                if (GUI.Button(new Rect(startX + 2 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Combat", currentCategory == MenuCategory.Combat ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.Combat;
-                if (GUI.Button(new Rect(startX + 3 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Misc", currentCategory == MenuCategory.Misc ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.Misc;
-                if (GUI.Button(new Rect(startX + 4 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Enemies", currentCategory == MenuCategory.Enemies ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.Enemies;
-                if (GUI.Button(new Rect(startX + 5 * (tabWidth + spacing), menuY + 30, tabWidth, tabHeight), "Items", currentCategory == MenuCategory.Items ? selectedTabStyle : tabStyle))
-                    currentCategory = MenuCategory.Items;
-
-                GUIStyle instructionStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, normal = { textColor = Color.white } };
-                GUI.Label(new Rect(menuX + 10, menuY + 75, 580, 20), "Press F5 to reload! Press DEL to close! Press F10 to unload!", instructionStyle);
-                switch (currentCategory)
-                {
-                    case MenuCategory.Player:
-                        UpdatePlayerList();
-                        UIHelper.Label("Select a player:", menuX + 30, menuY + 95);
-                        playerScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 150), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
-                        for (int i = 0; i < playerNames.Count; i++)
-                        {
-                            if (i == selectedPlayerIndex) GUI.color = Color.white;
-                            else GUI.color = Color.gray;
-                            if (GUI.Button(new Rect(0, i * 35, 520, 30), playerNames[i])) selectedPlayerIndex = i;
-                            GUI.color = Color.white;
-                        }
-                        GUI.EndScrollView();
-
-                        if (UIHelper.Button("Heal Player", menuX + 30, menuY + 275))
-                        {
-                            if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
-                            {
-                                Health_Player.HealPlayer(playerList[selectedPlayerIndex], 50, playerNames[selectedPlayerIndex]);
-                                Hax2.Log1($"Player {playerNames[selectedPlayerIndex]} healed.");
-                            }
-                            else
-                            {
-                                Hax2.Log1("Nenhum jogador válido selecionado para curar!");
-                            }
-                        }
-                        if (UIHelper.Button("Damage Player", menuX + 30, menuY + 315))
-                        {
-                            if (selectedPlayerIndex >= 0 && selectedPlayerIndex < playerList.Count)
-                            {
-                                Health_Player.DamagePlayer(playerList[selectedPlayerIndex], 1, playerNames[selectedPlayerIndex]);
-                                Hax2.Log1($"Player {playerNames[selectedPlayerIndex]} damaged.");
-                            }
-                            else
-                            {
-                                Hax2.Log1("Nenhum jogador válido selecionado para causar dano!");
-                            }
-                        }
-                        bool newHealState = UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 355);
-                        if (newHealState != infiniteHealthActive) { infiniteHealthActive = newHealState; Health_Player.MaxHealth(); }
-                        bool newStaminaState = UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 395);
-                        if (newStaminaState != stamineState) { stamineState = newStaminaState; PlayerController.MaxStamina(); Hax2.Log1("God mode toggled: " + stamineState); }
-                        bool newGodModeState = UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 435);
-                        if (newGodModeState != godModeActive) { PlayerController.GodMode(); godModeActive = newGodModeState; Hax2.Log1("God mode toggled: " + godModeActive); }
-
-                        UIHelper.Label("Speed Value " + sliderValue, menuX + 30, menuY + 475);
-                        oldSliderValue = sliderValue;
-                        sliderValue = UIHelper.Slider(sliderValue, 1f, 30f, menuX + 30, menuY + 495);
-
-                        UIHelper.Label("Strength Value: " + sliderValueStrength, menuX + 30, menuY + 515);
-                        oldSliderValueStrength = sliderValueStrength;
-                        sliderValueStrength = UIHelper.Slider(sliderValueStrength, 1f, 100f, menuX + 30, menuY + 535);
-
-                        UIHelper.Label("Stamina Recharge Delay: " + Hax2.staminaRechargeDelay, menuX + 30, menuY + 565);
-                        Hax2.staminaRechargeDelay = UIHelper.Slider(Hax2.staminaRechargeDelay, 0f, 10f, menuX + 30, menuY + 586);
-
-                        UIHelper.Label("Stamina Recharge Rate: " + Hax2.staminaRechargeRate, menuX + 30, menuY + 605);
-                        Hax2.staminaRechargeRate = UIHelper.Slider(Hax2.staminaRechargeRate, 1f, 20f, menuX + 30, menuY + 625);
-
-                        if (Hax2.staminaRechargeDelay != oldStaminaRechargeDelay || Hax2.staminaRechargeRate != oldStaminaRechargeRate)
-                        {
-                            PlayerController.DecreaseStaminaRechargeDelay(Hax2.staminaRechargeDelay, Hax2.staminaRechargeRate);
-                            Hax2.Log1($"Stamina recharge updated: Delay={Hax2.staminaRechargeDelay}x, Rate={Hax2.staminaRechargeRate}x");
-                            oldStaminaRechargeDelay = Hax2.staminaRechargeDelay;
-                            oldStaminaRechargeRate = Hax2.staminaRechargeRate;
-                        }
-                        break;
-
-                    case MenuCategory.ESP:
-                        DebugCheats.drawEspBool = UIHelper.Checkbox("Enemy ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 105);
-
-                        if (DebugCheats.drawEspBool)
-                        {
-                            DebugCheats.showEnemyNames = UIHelper.Checkbox("Show Enemy Names", DebugCheats.showEnemyNames, menuX + 50, menuY + 125);
-                            DebugCheats.showEnemyDistance = UIHelper.Checkbox("Show Enemy Distance", DebugCheats.showEnemyDistance, menuX + 50, menuY + 155);
-                        }
-
-                        DebugCheats.drawItemEspBool = UIHelper.Checkbox("Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 185);
-
-                        if (DebugCheats.drawItemEspBool)
-                        {
-                            DebugCheats.showItemNames = UIHelper.Checkbox("Show Item Names", DebugCheats.showItemNames, menuX + 50, menuY + 205);
-                            DebugCheats.showItemDistance = UIHelper.Checkbox("Show Item Distance", DebugCheats.showItemDistance, menuX + 50, menuY + 235);
-                            DebugCheats.showItemValue = UIHelper.Checkbox("Show Item Value", DebugCheats.showItemValue, menuX + 50, menuY + 265);
-                            DebugCheats.draw3DItemEspBool = UIHelper.Checkbox("3D Item ESP", DebugCheats.draw3DItemEspBool, menuX + 50, menuY + 295);
-                        }
-
-                        DebugCheats.drawExtractionPointEspBool = UIHelper.Checkbox("Extraction ESP", DebugCheats.drawExtractionPointEspBool, menuX + 30, menuY + 325);
-
-                        if (DebugCheats.drawExtractionPointEspBool)
-                        {
-                            DebugCheats.showExtractionNames = UIHelper.Checkbox("Show Extraction Names", DebugCheats.showExtractionNames, menuX + 50, menuY + 355);
-                            DebugCheats.showExtractionDistance = UIHelper.Checkbox("Show Extraction Distance", DebugCheats.showExtractionDistance, menuX + 50, menuY + 385);
-                        }
-
-                        DebugCheats.drawPlayerEspBool = UIHelper.Checkbox("2D Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 420);
-                        DebugCheats.draw3DPlayerEspBool = UIHelper.Checkbox("3D Player ESP", DebugCheats.draw3DPlayerEspBool, menuX + 30, menuY + 450);
-
-                        if (DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool)
-                        {
-                            DebugCheats.showPlayerNames = UIHelper.Checkbox("Show Player Names", DebugCheats.showPlayerNames, menuX + 50, menuY + 480);
-                            DebugCheats.showPlayerDistance = UIHelper.Checkbox("Show Player Distance", DebugCheats.showPlayerDistance, menuX + 50, menuY + 510);
-                            DebugCheats.showPlayerHP = UIHelper.Checkbox("Show Player HP", DebugCheats.showPlayerHP, menuX + 50, menuY + 540);
-                        }
-                        break;
-
-                    case MenuCategory.Combat:
-                        UpdatePlayerList();
-                        UIHelper.Label("Select a player:", menuX + 30, menuY + 95);
-
-                        playerScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), playerScrollPosition, new Rect(0, 0, 520, playerNames.Count * 35), false, true);
-                        for (int i = 0; i < playerNames.Count; i++)
-                        {
-                            if (i == selectedPlayerIndex) GUI.color = Color.white;
-                            else GUI.color = Color.gray;
-                            if (GUI.Button(new Rect(0, i * 35, 520, 30), playerNames[i])) selectedPlayerIndex = i;
-                            GUI.color = Color.white;
-                        }
-                        GUI.EndScrollView();
-
-                        if (UIHelper.Button("Revive", menuX + 30, menuY + 330)) { ReviveSelectedPlayer(); Hax2.Log1("Player revived: " + playerNames[selectedPlayerIndex]); }
-                        if (UIHelper.Button("Kill Selected Player", menuX + 30, menuY + 370)) { KillSelectedPlayer(); Hax2.Log1("Tentativa de matar o jogador selecionado realizada."); }
-                        if (UIHelper.Button("Send Player To Void", menuX + 30, menuY + 410)) SendSelectedPlayerToVoid();
-                        if (UIHelper.Button("Teleport Player To Me", menuX + 30, menuY + 450)) { Teleport.TeleportPlayerToMe(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado {playerNames[selectedPlayerIndex]} até você."); }
-                        if (UIHelper.Button("Teleport Me To Player", menuX + 30, menuY + 490)) { Teleport.TeleportMeToPlayer(selectedPlayerIndex, playerList, playerNames); Hax2.Log1($"Teleportado você até {playerNames[selectedPlayerIndex]}."); }
-                        break;
-
-                    case MenuCategory.Misc:
-                        if (UIHelper.Button("Spawn Money", menuX + 30, menuY + 105))
-                        {
-                            Hax2.Log1("Botão 'Spawn Money' clicado!");
-                            GameObject localPlayer = DebugCheats.GetLocalPlayer();
-                            if (localPlayer == null)
-                            {
-                                Hax2.Log1("Jogador local não encontrado!");
-                                return;
-                            }
-                            Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
-                            transform.position = targetPosition;
-                            ItemSpawner.SpawnItem(targetPosition);
-                            Hax2.Log1("Money spawned.");
-                        }
-                        bool newPlayerColorState = UIHelper.ButtonBool("RGB Player", playerColor.isRandomizing, menuX + 30, menuY + 145);
-                        if (newPlayerColorState != playerColor.isRandomizing)
-                        {
-                            playerColor.isRandomizing = newPlayerColorState;
-                            Hax2.Log1("Randomize toggled: " + playerColor.isRandomizing);
-                        }
-                        UIHelper.Label("Flashlight Intensity: " + Hax2.flashlightIntensity, menuX + 30, menuY + 185);
-                        Hax2.flashlightIntensity = UIHelper.Slider(Hax2.flashlightIntensity, 1f, 100f, menuX + 30, menuY + 205);
-
-                        UIHelper.Label("Crouch Delay: " + Hax2.crouchDelay, menuX + 30, menuY + 225);
-                        Hax2.crouchDelay = UIHelper.Slider(Hax2.crouchDelay, 0f, 5f, menuX + 30, menuY + 245);
-
-                        UIHelper.Label("Set Crouch Speed: " + Hax2.crouchSpeed, menuX + 30, menuY + 265);
-                        Hax2.crouchSpeed = UIHelper.Slider(Hax2.crouchSpeed, 1f, 50f, menuX + 30, menuY + 285);
-
-                        UIHelper.Label("Set Jump Force: " + Hax2.jumpForce, menuX + 30, menuY + 305);
-                        Hax2.jumpForce = UIHelper.Slider(Hax2.jumpForce, 1f, 50f, menuX + 30, menuY + 326);
-
-                        UIHelper.Label("Set Extra Jumps: " + Hax2.extraJumps, menuX + 30, menuY + 345);
-                        Hax2.extraJumps = (int)UIHelper.Slider(Hax2.extraJumps, 1f, 100f, menuX + 30, menuY + 365);
-
-                        UIHelper.Label("Set Custom Gravity: " + Hax2.customGravity, menuX + 30, menuY + 385);
-                        Hax2.customGravity = UIHelper.Slider(Hax2.customGravity, -10f, 50f, menuX + 30, menuY + 405);
-
-                        if (Hax2.flashlightIntensity != OldflashlightIntensity)
-                        {
-                            PlayerController.SetFlashlightIntensity(Hax2.flashlightIntensity);
-                            OldflashlightIntensity = Hax2.flashlightIntensity;
-                        }
-                        if (Hax2.crouchDelay != OldcrouchDelay)
-                        {
-                            PlayerController.SetCrouchDelay(Hax2.crouchDelay);
-                            OldcrouchDelay = Hax2.crouchDelay;
-                        }
-                        if(Hax2.jumpForce != Hax2.OldjumpForce)
-                        {
-                            PlayerController.SetJumpForce(Hax2.jumpForce);
-                            OldjumpForce = Hax2.jumpForce;
-                        }
-                        if (Hax2.customGravity != Hax2.OldcustomGravity)
-                        {
-                            PlayerController.SetCustomGravity(Hax2.customGravity);
-                            OldcustomGravity = Hax2.customGravity;
-                        }
-                        if(Hax2.extraJumps != Hax2.OldextraJumps)
-                        {
-                            PlayerController.SetExtraJumps(Hax2.extraJumps);
-                            OldextraJumps = Hax2.extraJumps;
-                        }
-                        if (Hax2.crouchSpeed != Hax2.OldcrouchSpeed)
-                        {
-                            PlayerController.SetCrouchSpeed(Hax2.crouchSpeed);
-                            OldcrouchSpeed = Hax2.crouchSpeed;
-                        }
-                        break;
-
-                    case MenuCategory.Enemies:
-                        UpdateEnemyList();
-                        UIHelper.Label("Select an enemy:", menuX + 30, menuY + 95);
-
-                        enemyScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), enemyScrollPosition, new Rect(0, 0, 520, enemyNames.Count * 35), false, true);
-                        for (int i = 0; i < enemyNames.Count; i++)
-                        {
-                            if (i == selectedEnemyIndex) GUI.color = Color.white;
-                            else GUI.color = Color.gray;
-                            if (GUI.Button(new Rect(0, i * 35, 520, 30), enemyNames[i])) selectedEnemyIndex = i;
-                            GUI.color = Color.white;
-                        }
-                        GUI.EndScrollView();
-
-                        if (UIHelper.Button("Kill Selected Enemy", menuX + 30, menuY + 330))
-                        {
-                            KillSelectedEnemy();
-                            Hax2.Log1($"Tentativa de matar o inimigo selecionado realizada: {enemyNames[selectedEnemyIndex]}");
-                        }
-                        if (UIHelper.Button("Kill All Enemies", menuX + 30, menuY + 370))
-                        {
-                            DebugCheats.KillAllEnemies();
-                            Hax2.Log1("Tentativa de matar todos os inimigos realizada.");
-                        }
-                        if (UIHelper.Button("Teleport Enemy to Me", menuX + 30, menuY + 410))
-                        {
-                            TeleportEnemyToMe();
-                            Hax2.Log1($"Tentativa de teleportar {enemyNames[selectedEnemyIndex]} até você realizada.");
-                        }
-                        break;
-
-                    case MenuCategory.Items:
-                        UIHelper.Label("Select an item:", menuX + 30, menuY + 95);
-
-                        itemScrollPosition = GUI.BeginScrollView(new Rect(menuX + 30, menuY + 115, 540, 200), itemScrollPosition, new Rect(0, 0, 520, itemList.Count * 35), false, true);
-                        for (int i = 0; i < itemList.Count; i++)
-                        {
-                            if (i == selectedItemIndex) GUI.color = Color.white;
-                            else GUI.color = Color.gray;
-                            if (GUI.Button(new Rect(0, i * 35, 520, 30), $"{itemList[i].Name} [Value: {itemList[i].Value}$]"))
-                            {
-                                selectedItemIndex = i;
-                            }
-                            GUI.color = Color.white;
-                        }
-                        GUI.EndScrollView();
-                        if (UIHelper.Button("Teleport Item to Me", menuX + 30, menuY + 330))
-                        {
-                            if (selectedItemIndex >= 0 && selectedItemIndex < itemList.Count)
-                            {
-                                ItemTeleport.TeleportItemToMe(itemList[selectedItemIndex]);
-                                Hax2.Log1($"Teleported item: {itemList[selectedItemIndex].Name}");
-                            }
-                            else
-                            {
-                                Hax2.Log1("Nenhum item válido selecionado para teleporte!");
-                            }
-                        }
-                        if (UIHelper.Button("Teleport All Items to Me", menuX + 30, menuY + 370))
-                        {
-                            ItemTeleport.TeleportAllItemsToMe();
-                            Hax2.Log1("Teleporting all items initiated.");
-                        }
-                        if (UIHelper.Button("Change Item Value to 10K", menuX + 30, menuY + 410))
-                        {
-                            if (selectedItemIndex >= 0 && selectedItemIndex < itemList.Count)
-                            {
-                                ItemTeleport.SetItemValue(itemList[selectedItemIndex], 10000);
-                                Hax2.Log1($"Updated value: {itemList[selectedItemIndex].Value}");
-                            }
-                            else
-                            {
-                                Hax2.Log1("Nenhum item válido selecionado para alterar valor!");
-                            }
-                        }
-                        break;
-                }
-            }
-
-            if (showDebugMenu)
-            {
-                UIHelper.ResetDebugGrid();
-                UIHelper.BeginDebugMenu("Debug Log", 800, 50, 500, 500, 30, 30, 10);
-                UIHelper.Label("Press F12 to close debug log", 830, 70);
-                foreach (var logMessage in debugLogMessages)
-                {
-                    if (!string.IsNullOrEmpty(logMessage.message)) UIHelper.DebugLabel(logMessage.message);
-                }
+                GUI.Label(new Rect(410, 70 + (i * 20), 280, 20), debugLogMessages[i].message);
             }
         }
+    }
+}
+
+// Cached UI Elements (Only Regenerates When Needed)
+private void GenerateUICache()
+{
+    cachedUIElements.Clear();
+    cachedUIElements.Add(() => UIHelper.Button("God Mode", menuX + 30, menuY + 80, () => { PlayerController.GodMode(); return true; }));
+    cachedUIElements.Add(() => UIHelper.Button("Teleport to Me", menuX + 30, menuY + 120, () => { Teleport.TeleportPlayerToMe(); return true; }));
+    cachedUIElements.Add(() => UIHelper.Button("Spawn Items", menuX + 30, menuY + 160, () => { ItemSpawner.SpawnItem(Vector3.zero); return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return true; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, (newState) => { PlayerController.GodMode(); godModeActive = newState; return true; }));
+}
+
+        // Call this when UI elements need updating
+        private void RequestUIUpdate()
+        {
+        uiNeedsUpdate = true;
+        }
+
+        // Variables for Optimization
+        private bool uiNeedsUpdate = true;
+        private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
+
         private Texture2D MakeSolidBackground(Color color, float alpha)
         {
             Texture2D texture = new Texture2D(1, 1);
