@@ -38,63 +38,65 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public static void GodMode()
-        {
-            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerControllerType != null)
-            {
-                Hax2.Log1("PlayerController found.");
+public static void GodMode()
+{
+    var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
+    if (playerControllerType == null)
+    {
+        Hax2.Log1("PlayerController type not found.");
+        return;
+    }
 
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
-                if (playerControllerInstance != null)
-                {
-                    var playerAvatarScriptField = playerControllerInstance.GetType().GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
-                    if (playerAvatarScriptField != null)
-                    {
-                        var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+    var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
+    if (playerControllerInstance == null)
+    {
+        Hax2.Log1("PlayerController instance not found.");
+        return;
+    }
 
-                        var playerHealthField = playerAvatarScriptInstance.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.Instance);
-                        if (playerHealthField != null)
-                        {
-                            var playerHealthInstance = playerHealthField.GetValue(playerAvatarScriptInstance);
+    var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
+    if (playerAvatarScriptField == null)
+    {
+        Hax2.Log1("playerAvatarScript field not found in PlayerController.");
+        return;
+    }
 
-                            var godModeField = playerHealthInstance.GetType().GetField("godMode", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                            if (godModeField != null)
-                            {
-                                bool currentGodMode = (bool)godModeField.GetValue(playerHealthInstance);
+    var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+    if (playerAvatarScriptInstance == null)
+    {
+        Hax2.Log1("playerAvatarScriptInstance is null.");
+        return;
+    }
 
-                                bool newGodModeState = !currentGodMode;
-                                godModeField.SetValue(playerHealthInstance, newGodModeState);
+    var playerHealthField = playerAvatarScriptInstance.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.Instance);
+    if (playerHealthField == null)
+    {
+        Hax2.Log1("playerHealth field not found in playerAvatarScript.");
+        return;
+    }
 
-                                Hax2.godModeActive = !newGodModeState;
+    var playerHealthInstance = playerHealthField.GetValue(playerAvatarScriptInstance);
+    if (playerHealthInstance == null)
+    {
+        Hax2.Log1("playerHealthInstance is null.");
+        return;
+    }
 
-                                Hax2.Log1("God Mode " + (newGodModeState ? "enabled" : "disabled"));
-                            }
-                            else
-                            {
-                                Hax2.Log1("godMode field not found in playerHealth.");
-                            }
-                        }
-                        else
-                        {
-                            Hax2.Log1("playerHealth field not found in playerAvatarScript.");
-                        }
-                    }
-                    else
-                    {
-                        Hax2.Log1("playerAvatarScript field not found in PlayerController.");
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("playerControllerInstance not found.");
-                }
-            }
-            else
-            {
-                Hax2.Log1("PlayerController type not found.");
-            }
-        }
+    var godModeField = playerHealthInstance.GetType().GetField("godMode", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+    if (godModeField == null)
+    {
+        Hax2.Log1("godMode field not found in playerHealth.");
+        return;
+    }
+
+    bool currentGodMode = (bool)godModeField.GetValue(playerHealthInstance);
+    bool newGodModeState = !currentGodMode;
+    
+    godModeField.SetValue(playerHealthInstance, newGodModeState);
+    Hax2.godModeActive = newGodModeState; // Fix: Ensure it reflects the actual state
+
+    Hax2.Log1($"God Mode {(newGodModeState ? "enabled" : "disabled")}");
+}
 
 public static void RemoveSpeed(float sliderValue)
 {
