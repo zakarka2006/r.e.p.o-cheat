@@ -309,7 +309,6 @@ namespace r.e.p.o_cheat
         public static void UpdateEnemyList()
         {
             enemyList.Clear();
-            Hax2.Log1("Atualizando lista de inimigos");
 
             var enemyDirectorType = Type.GetType("EnemyDirector, Assembly-CSharp");
             if (enemyDirectorType != null)
@@ -340,7 +339,6 @@ namespace r.e.p.o_cheat
                                     }
                                 }
                             }
-                            Hax2.Log1($"Inimigos encontrados: {enemyList.Count}");
                         }
                         else
                         {

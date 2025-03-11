@@ -184,6 +184,20 @@ namespace r.e.p.o_cheat
         public static float oldStaminaRechargeDelay = 1f;
         public static float oldStaminaRechargeRate = 1f;
 
+        public static float jumpForce = 1f;
+        public static float customGravity = 1f;
+        public static int extraJumps = 1;
+        public static float flashlightIntensity = 1f;
+        public static float crouchDelay = 1f;
+        public static float crouchSpeed = 1f;
+
+        public static float OldflashlightIntensity = 1f;
+        public static float OldcrouchDelay = 1f;
+        public static float OldjumpForce = 1f;
+        public static float OldcustomGravity = 1f;
+        public static float OldextraJumps = 1f;
+        public static float OldcrouchSpeed = 1f;
+
         private List<ItemTeleport.GameItem> itemList = new List<ItemTeleport.GameItem>();
         private int selectedItemIndex = 0;
         private Vector2 itemScrollPosition = Vector2.zero;
@@ -208,30 +222,28 @@ namespace r.e.p.o_cheat
             var playerHealthType = Type.GetType("PlayerHealth, Assembly-CSharp");
             if (playerHealthType != null)
             {
-                Log1("playerHealthType is not null");
+                Log1("playerHealthType não é null");
                 Health_Player.playerHealthInstance = FindObjectOfType(playerHealthType);
-                Log1(Health_Player.playerHealthInstance != null ? "playerHealthInstance is not null" : "playerHealthInstance is null");
+                Log1(Health_Player.playerHealthInstance != null ? "playerHealthInstance não é null" : "playerHealthInstance null");
             }
-            else
-                Log1("playerHealthType is null");
+            else Log1("playerHealthType null");
 
             var playerMaxHealth = Type.GetType("ItemUpgradePlayerHealth, Assembly-CSharp");
             if (playerMaxHealth != null)
             {
                 Health_Player.playerMaxHealthInstance = FindObjectOfType(playerMaxHealth);
-                Log1("playerMaxHealth is not null");
+                Log1("playerMaxHealth não é null");
             }
-            else
-                Log1("playerMaxHealth is null");
+            else Log1("playerMaxHealth null");
         }
-        
+
         public void Update()
         {
             Strength.UpdateStrength();
             if (Time.time >= nextUpdateTime)
             {
                 DebugCheats.UpdateEnemyList();
-                Log1("Enemy list updated!");
+                Log1("Lista de inimigos atualizada!");
                 nextUpdateTime = Time.time + updateInterval;
             }
             if (Time.time - lastItemListUpdateTime > itemListUpdateInterval)
@@ -250,7 +262,6 @@ namespace r.e.p.o_cheat
                 Strength.MaxStrength();
                 oldSliderValueStrength = sliderValueStrength;
             }
-
             if (playerColor.isRandomizing) playerColor.colorRandomizer();
 
             if (Input.GetKeyDown(KeyCode.Delete))
@@ -264,6 +275,7 @@ namespace r.e.p.o_cheat
                 UpdateCursorState();
             }
             if (Input.GetKeyDown(KeyCode.F5)) Start();
+
             if (Input.GetKeyDown(KeyCode.F10))
             {
                 showMenu = false;
@@ -275,16 +287,13 @@ namespace r.e.p.o_cheat
 
             for (int i = debugLogMessages.Count - 1; i >= 0; i--)
             {
-                if (Time.time - debugLogMessages[i].timestamp > 3f)
-                    debugLogMessages.RemoveAt(i);
+                if (Time.time - debugLogMessages[i].timestamp > 3f) debugLogMessages.RemoveAt(i);
             }
-
             if (showMenu)
             {
                 TryLockCamera();
             }
         }
-
         private void TryLockCamera()
         {
             if (InputManager.instance != null)
@@ -310,8 +319,6 @@ namespace r.e.p.o_cheat
                 Debug.LogWarning("InputManager.instance not found!");
             }
         }
-
-
         private void TryUnlockCamera()
         {
             if (InputManager.instance != null)
@@ -340,7 +347,6 @@ namespace r.e.p.o_cheat
             Cursor.visible = showMenu;
             Cursor.lockState = showMenu ? CursorLockMode.None : CursorLockMode.Locked;
         }
-        
         private void UpdateItemList()
         {
             DebugCheats.valuableObjects.Clear();
@@ -386,7 +392,7 @@ namespace r.e.p.o_cheat
         {
             if (selectedEnemyIndex < 0 || selectedEnemyIndex >= enemyList.Count)
             {
-                Log1("Índice de inimigo inválido!");
+                Log1($"Índice de inimigo inválido! selectedEnemyIndex={selectedEnemyIndex}, enemyList.Count={enemyList.Count}");
                 return;
             }
 
@@ -406,23 +412,90 @@ namespace r.e.p.o_cheat
                     return;
                 }
 
-                Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
+                Vector3 forwardDirection = localPlayer.transform.forward;
+                Vector3 targetPosition = localPlayer.transform.position + forwardDirection * 1f + Vector3.up * 1.5f;
 
                 var photonView = selectedEnemy.GetComponent<PhotonView>();
+                if (PhotonNetwork.IsConnected && photonView != null && !photonView.IsMine)
+                {
+                    photonView.RequestOwnership();
+                    Log1($"Solicitada posse do inimigo {enemyNames[selectedEnemyIndex]} para garantir controle local.");
+                }
+
+                var navMeshAgentField = selectedEnemy.GetType().GetField("NavMeshAgent", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                object navMeshAgent = null;
+                if (navMeshAgentField != null)
+                {
+                    navMeshAgent = navMeshAgentField.GetValue(selectedEnemy);
+                    if (navMeshAgent != null)
+                    {
+                        var enabledProperty = navMeshAgent.GetType().GetProperty("enabled", BindingFlags.Public | BindingFlags.Instance);
+                        if (enabledProperty != null)
+                        {
+                            enabledProperty.SetValue(navMeshAgent, false);
+                            Log1($"NavMeshAgent de {enemyNames[selectedEnemyIndex]} desativado para evitar movimento imediato.");
+                        }
+                    }
+                }
+
+                selectedEnemy.transform.position = targetPosition;
+                Log1($"Inimigo {enemyNames[selectedEnemyIndex]} teleportado localmente para {targetPosition}");
+
+                Vector3 currentPosition = selectedEnemy.transform.position;
+                Log1($"Posição atual do inimigo após teleporte: {currentPosition}");
+
                 if (PhotonNetwork.IsConnected && photonView != null)
                 {
-                    photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { targetPosition, selectedEnemy.transform.rotation });
-                    Log1($"RPC 'SpawnRPC' enviado para teleportar {enemyNames[selectedEnemyIndex]} até {targetPosition}");
+                    var enemyType = selectedEnemy.GetType();
+                    var teleportMethod = enemyType.GetMethod("EnemyTeleported", BindingFlags.Public | BindingFlags.Instance);
+                    if (teleportMethod != null)
+                    {
+                        teleportMethod.Invoke(selectedEnemy, new object[] { targetPosition });
+                        Log1($"Inimigo {enemyNames[selectedEnemyIndex]} teleportado via EnemyTeleported para sincronização multiplayer.");
+                    }
+                    else
+                    {
+                        Log1("Método 'EnemyTeleported' não encontrado, sincronização pode não ocorrer.");
+                    }
+                }
+
+                if (navMeshAgent != null)
+                {
+                    StartCoroutine(ReEnableNavMeshAgent(navMeshAgent, 2f));
+                }
+
+                var enemyGameObject = selectedEnemy.GetComponent<GameObject>(); 
+                if (enemyGameObject == null)
+                {
+                    enemyGameObject = ((MonoBehaviour)selectedEnemy).gameObject;
+                }
+                if (enemyGameObject != null)
+                {
+                    enemyGameObject.SetActive(false);
+                    enemyGameObject.SetActive(true);
+                    Log1($"Inimigo {enemyNames[selectedEnemyIndex]} reativado para forçar renderização.");
                 }
                 else
                 {
-                    selectedEnemy.transform.position = targetPosition;
-                    Log1($"Inimigo {enemyNames[selectedEnemyIndex]} teleportado localmente para {targetPosition}");
+                    Log1($"GameObject do inimigo {enemyNames[selectedEnemyIndex]} não encontrado para re-renderização.");
                 }
+
+                UpdateEnemyList();
+                Log1($"Teleporte de {enemyNames[selectedEnemyIndex]} concluído.");
             }
             catch (Exception e)
             {
                 Log1($"Erro ao teleportar inimigo {enemyNames[selectedEnemyIndex]}: {e.Message}");
+            }
+        }
+        private System.Collections.IEnumerator ReEnableNavMeshAgent(object navMeshAgent, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            var enabledProperty = navMeshAgent.GetType().GetProperty("enabled", BindingFlags.Public | BindingFlags.Instance);
+            if (enabledProperty != null)
+            {
+                enabledProperty.SetValue(navMeshAgent, true);
+                Log1("NavMeshAgent reativado após teleporte.");
             }
         }
         private void KillSelectedEnemy()
@@ -794,7 +867,6 @@ namespace r.e.p.o_cheat
                 GUI.Box(menuRect, "", menuStyle);
                 UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
 
-                // Lógica de arrastar
                 if (Event.current.type == EventType.MouseDown && titleRect.Contains(Event.current.mousePosition))
                 {
                     isDragging = true;
@@ -811,7 +883,6 @@ namespace r.e.p.o_cheat
                     menuY = Mathf.Clamp(newPosition.y, 0, Screen.height - 730);
                 }
 
-                // Abas
                 float tabWidth = 90f;
                 float tabHeight = 40f;
                 float spacing = 10f;
@@ -846,7 +917,6 @@ namespace r.e.p.o_cheat
 
                 GUIStyle instructionStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, normal = { textColor = Color.white } };
                 GUI.Label(new Rect(menuX + 10, menuY + 75, 580, 20), "Press F5 to reload! Press DEL to close! Press F10 to unload!", instructionStyle);
-                // Conteúdo das abas
                 switch (currentCategory)
                 {
                     case MenuCategory.Player:
@@ -996,6 +1066,54 @@ namespace r.e.p.o_cheat
                             playerColor.isRandomizing = newPlayerColorState;
                             Hax2.Log1("Randomize toggled: " + playerColor.isRandomizing);
                         }
+                        UIHelper.Label("Flashlight Intensity: " + Hax2.flashlightIntensity, menuX + 30, menuY + 185);
+                        Hax2.flashlightIntensity = UIHelper.Slider(Hax2.flashlightIntensity, 1f, 100f, menuX + 30, menuY + 205);
+
+                        UIHelper.Label("Crouch Delay: " + Hax2.crouchDelay, menuX + 30, menuY + 225);
+                        Hax2.crouchDelay = UIHelper.Slider(Hax2.crouchDelay, 0f, 5f, menuX + 30, menuY + 245);
+
+                        UIHelper.Label("Set Crouch Speed: " + Hax2.crouchSpeed, menuX + 30, menuY + 265);
+                        Hax2.crouchSpeed = UIHelper.Slider(Hax2.crouchSpeed, 1f, 50f, menuX + 30, menuY + 285);
+
+                        UIHelper.Label("Set Jump Force: " + Hax2.jumpForce, menuX + 30, menuY + 305);
+                        Hax2.jumpForce = UIHelper.Slider(Hax2.jumpForce, 1f, 50f, menuX + 30, menuY + 326);
+
+                        UIHelper.Label("Set Extra Jumps: " + Hax2.extraJumps, menuX + 30, menuY + 345);
+                        Hax2.extraJumps = (int)UIHelper.Slider(Hax2.extraJumps, 1f, 100f, menuX + 30, menuY + 365);
+
+                        UIHelper.Label("Set Custom Gravity: " + Hax2.customGravity, menuX + 30, menuY + 385);
+                        Hax2.customGravity = UIHelper.Slider(Hax2.customGravity, -10f, 50f, menuX + 30, menuY + 405);
+
+                        if (Hax2.flashlightIntensity != OldflashlightIntensity)
+                        {
+                            PlayerController.SetFlashlightIntensity(Hax2.flashlightIntensity);
+                            OldflashlightIntensity = Hax2.flashlightIntensity;
+                        }
+                        if (Hax2.crouchDelay != OldcrouchDelay)
+                        {
+                            PlayerController.SetCrouchDelay(Hax2.crouchDelay);
+                            OldcrouchDelay = Hax2.crouchDelay;
+                        }
+                        if(Hax2.jumpForce != Hax2.OldjumpForce)
+                        {
+                            PlayerController.SetJumpForce(Hax2.jumpForce);
+                            OldjumpForce = Hax2.jumpForce;
+                        }
+                        if (Hax2.customGravity != Hax2.OldcustomGravity)
+                        {
+                            PlayerController.SetCustomGravity(Hax2.customGravity);
+                            OldcustomGravity = Hax2.customGravity;
+                        }
+                        if(Hax2.extraJumps != Hax2.OldextraJumps)
+                        {
+                            PlayerController.SetExtraJumps(Hax2.extraJumps);
+                            OldextraJumps = Hax2.extraJumps;
+                        }
+                        if (Hax2.crouchSpeed != Hax2.OldcrouchSpeed)
+                        {
+                            PlayerController.SetCrouchSpeed(Hax2.crouchSpeed);
+                            OldcrouchSpeed = Hax2.crouchSpeed;
+                        }
                         break;
 
                     case MenuCategory.Enemies:
@@ -1022,7 +1140,7 @@ namespace r.e.p.o_cheat
                             DebugCheats.KillAllEnemies();
                             Hax2.Log1("Tentativa de matar todos os inimigos realizada.");
                         }
-                        if (UIHelper.Button("Teleport Enemy to Me", menuX + 30, menuY + 410)) // Novo botão
+                        if (UIHelper.Button("Teleport Enemy to Me", menuX + 30, menuY + 410))
                         {
                             TeleportEnemyToMe();
                             Hax2.Log1($"Tentativa de teleportar {enemyNames[selectedEnemyIndex]} até você realizada.");
@@ -1044,11 +1162,34 @@ namespace r.e.p.o_cheat
                             GUI.color = Color.white;
                         }
                         GUI.EndScrollView();
-
-                        if (UIHelper.Button("Teleport Item to Me (Host Only for now)", menuX + 30, menuY + 330))
+                        if (UIHelper.Button("Teleport Item to Me", menuX + 30, menuY + 330))
                         {
-                            ItemTeleport.TeleportItemToMe(itemList[selectedItemIndex]);
-                            Hax2.Log1($"Teleported item: {itemList[selectedItemIndex].Name}");
+                            if (selectedItemIndex >= 0 && selectedItemIndex < itemList.Count)
+                            {
+                                ItemTeleport.TeleportItemToMe(itemList[selectedItemIndex]);
+                                Hax2.Log1($"Teleported item: {itemList[selectedItemIndex].Name}");
+                            }
+                            else
+                            {
+                                Hax2.Log1("Nenhum item válido selecionado para teleporte!");
+                            }
+                        }
+                        if (UIHelper.Button("Teleport All Items to Me", menuX + 30, menuY + 370))
+                        {
+                            ItemTeleport.TeleportAllItemsToMe();
+                            Hax2.Log1("Teleporting all items initiated.");
+                        }
+                        if (UIHelper.Button("Change Item Value to 10K", menuX + 30, menuY + 410))
+                        {
+                            if (selectedItemIndex >= 0 && selectedItemIndex < itemList.Count)
+                            {
+                                ItemTeleport.SetItemValue(itemList[selectedItemIndex], 10000);
+                                Hax2.Log1($"Updated value: {itemList[selectedItemIndex].Value}");
+                            }
+                            else
+                            {
+                                Hax2.Log1("Nenhum item válido selecionado para alterar valor!");
+                            }
                         }
                         break;
                 }
