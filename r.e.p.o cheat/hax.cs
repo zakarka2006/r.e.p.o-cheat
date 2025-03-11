@@ -22,6 +22,8 @@ namespace r.e.p.o_cheat
         private static int debugColumns = 1;
 
         private static GUIStyle debugLabelStyle = null;
+        private static GUIStyle sliderStyle;
+        private static GUIStyle thumbStyle;
 
         public static bool ButtonBool(string text, bool value, float? customX = null, float? customY = null)
         {
@@ -108,26 +110,34 @@ namespace r.e.p.o_cheat
             return GUI.Button(rect, text);
         }
 
+        public static void InitSliderStyles()
+        {
+            // Estilo personalizado para o slider
+            if (sliderStyle == null)
+            {
+                sliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
+                {
+                    normal = { background = MakeSolidBackground(new Color(0.7f, 0.7f, 0.7f), 1f) },
+                    hover = { background = MakeSolidBackground(new Color(0.8f, 0.8f, 0.8f), 1f) },
+                    active = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) }
+                };
+            }
+            if (thumbStyle == null)
+            {
+                thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb)
+                {
+                    normal = { background = MakeSolidBackground(Color.white, 1f) },
+                    hover = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) },
+                    active = { background = MakeSolidBackground(Color.green, 1f) }
+                };
+            }
+        }
+
         public static string MakeEnable(string text, bool state) => $"{text}{(state ? "ON" : "OFF")}";
         public static void Label(string text, float? customX = null, float? customY = null) => GUI.Label(NextControlRect(customX, customY), text);
         public static float Slider(float val, float min, float max, float? customX = null, float? customY = null)
         {
             Rect rect = NextControlRect(customX, customY);
-
-            // Estilo personalizado para o slider
-            GUIStyle sliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
-            {
-                normal = { background = MakeSolidBackground(new Color(0.7f, 0.7f, 0.7f), 1f) },
-                hover = { background = MakeSolidBackground(new Color(0.8f, 0.8f, 0.8f), 1f) },
-                active = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) } 
-            };
-
-            GUIStyle thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb)
-            {
-                normal = { background = MakeSolidBackground(Color.white, 1f) },
-                hover = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) },
-                active = { background = MakeSolidBackground(Color.green, 1f) }
-            };
 
             return Mathf.Round(GUI.HorizontalSlider(rect, val, min, max, sliderStyle, thumbStyle));
         }
@@ -176,6 +186,10 @@ namespace r.e.p.o_cheat
         private Vector2 playerScrollPosition = Vector2.zero;
         private Vector2 enemyScrollPosition = Vector2.zero;
 
+        private GUIStyle menuStyle;
+        private bool initialized = false;
+        private static Dictionary<Color, Texture2D> solidTextures = new Dictionary<Color, Texture2D>();
+
         private enum MenuCategory { Player, ESP, Combat, Misc, Enemies, Items }
         private MenuCategory currentCategory = MenuCategory.Player;
 
@@ -213,6 +227,17 @@ namespace r.e.p.o_cheat
 
         public void Start()
         {
+            menuStyle = new GUIStyle(GUI.skin.box)
+            {
+                normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
+                fontSize = 16,
+                alignment = TextAnchor.MiddleCenter,
+                padding = new RectOffset(10, 10, 10, 10),
+                border = new RectOffset(5, 5, 5, 5)
+            };
+
+            UIHelper.InitSliderStyles();
+
             UpdateCursorState();
 
             DebugCheats.texture2 = new Texture2D(2, 2, TextureFormat.ARGB32, false);
@@ -838,6 +863,11 @@ namespace r.e.p.o_cheat
 
         public void OnGUI()
         {
+            if (!initialized)
+            {
+                Start();
+                initialized = true;
+            }
 
             if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool) DebugCheats.DrawESP();
 
@@ -856,14 +886,6 @@ namespace r.e.p.o_cheat
                 Rect menuRect = new Rect(menuX, menuY, 600, 730);
                 Rect titleRect = new Rect(menuX, menuY, 600, titleBarHeight);
 
-                GUIStyle menuStyle = new GUIStyle(GUI.skin.box)
-                {
-                    normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
-                    fontSize = 16,
-                    alignment = TextAnchor.MiddleCenter,
-                    padding = new RectOffset(10, 10, 10, 10),
-                    border = new RectOffset(5, 5, 5, 5)
-                };
                 GUI.Box(menuRect, "", menuStyle);
                 UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
 
@@ -1206,12 +1228,18 @@ namespace r.e.p.o_cheat
                 }
             }
         }
-        private Texture2D MakeSolidBackground(Color color, float alpha)
+
+        private static Texture2D MakeSolidBackground(Color color, float alpha)
         {
-            Texture2D texture = new Texture2D(1, 1);
-            texture.SetPixel(0, 0, new Color(color.r, color.g, color.b, alpha));
-            texture.Apply();
-            return texture;
+            Color key = new Color(color.r, color.g, color.b, alpha);
+            if (!solidTextures.ContainsKey(color))
+            {
+                Texture2D texture = new Texture2D(1, 1);
+                texture.SetPixel(0, 0, key);
+                texture.Apply();
+                solidTextures[color] = texture;
+            }
+            return solidTextures[color];
         }
 
         public static void Log1(string message) => debugLogMessages.Add(new DebugLogMessage(message, Time.time));
