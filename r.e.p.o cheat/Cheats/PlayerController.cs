@@ -136,6 +136,46 @@ namespace r.e.p.o_cheat
             }
         }
 
+        public static void MaxStamina()
+        {
+            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
+            if (playerControllerType != null)
+            {
+                Hax2.Log1("PlayerController found.");
+
+                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
+                if (playerControllerInstance != null)
+                {
+                    var energyCurrentField = playerControllerInstance.GetType().GetField("EnergyCurrent", BindingFlags.Public | BindingFlags.Instance);
+                    if (energyCurrentField != null)
+                    {
+                        if (Hax2.stamineState)
+                        {
+                            energyCurrentField.SetValue(playerControllerInstance, 999999);
+                        }
+                        else if (!Hax2.stamineState)
+                        {
+                            energyCurrentField.SetValue(playerControllerInstance, 40);
+                        }
+
+                        Hax2.Log1("EnergyCurrent set to " + (Hax2.stamineState ? 999999 : 40));
+                    }
+                    else
+                    {
+                        Hax2.Log1("EnergyCurrent field not found in playerAvatarScript.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1("playerControllerInstance not found.");
+                }
+            }
+            else
+            {
+                Hax2.Log1("PlayerController type not found.");
+            }
+        }
+
         public static void DecreaseStaminaRechargeDelay(float delayMultiplier, float rateMultiplier = 1f)
         {
             InitializePlayerController();
@@ -180,46 +220,6 @@ namespace r.e.p.o_cheat
             {
                 DecreaseStaminaRechargeDelay(desiredDelayMultiplier, desiredRateMultiplier);
                 Hax2.Log1("Reapplied stamina settings after scene change.");
-            }
-        }
-
-        public static void MaxStamina()
-        {
-            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerControllerType != null)
-            {
-                Hax2.Log1("PlayerController found.");
-
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
-                if (playerControllerInstance != null)
-                {
-                    var energyCurrentField = playerControllerInstance.GetType().GetField("EnergyCurrent", BindingFlags.Public | BindingFlags.Instance);
-                    if (energyCurrentField != null)
-                    {
-                        if (Hax2.stamineState)
-                        {
-                            energyCurrentField.SetValue(playerControllerInstance, 999999);
-                        }
-                        else if (!Hax2.stamineState)
-                        {
-                            energyCurrentField.SetValue(playerControllerInstance, 40);
-                        }
-
-                        Hax2.Log1("EnergyCurrent set to " + (Hax2.stamineState ? 999999 : 40));
-                    }
-                    else
-                    {
-                        Hax2.Log1("EnergyCurrent field not found in playerAvatarScript.");
-                    }
-                }
-                else
-                {
-                    Hax2.Log1("playerControllerInstance not found.");
-                }
-            }
-            else
-            {
-                Hax2.Log1("PlayerController type not found.");
             }
         }
         
