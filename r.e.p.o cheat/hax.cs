@@ -1281,7 +1281,7 @@ namespace r.e.p.o_cheat
             }
         }
 
-        private static Texture2D MakeSolidBackground(Color color, float alpha)
+        private static Texture2D MakeSolidBackground(Color color, float alpha)//fix
         {
             Color key = new Color(color.r, color.g, color.b, alpha);
             if (!solidTextures.ContainsKey(color))
