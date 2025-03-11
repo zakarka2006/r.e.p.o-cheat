@@ -112,6 +112,7 @@ namespace r.e.p.o_cheat
 
         public static void InitSliderStyles()
         {
+            Debug.Log("InitSliderStyles");
             // Estilo personalizado para o slider
             if (sliderStyle == null)
             {
@@ -227,17 +228,6 @@ namespace r.e.p.o_cheat
 
         public void Start()
         {
-            menuStyle = new GUIStyle(GUI.skin.box)
-            {
-                normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
-                fontSize = 16,
-                alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(10, 10, 10, 10),
-                border = new RectOffset(5, 5, 5, 5)
-            };
-
-            UIHelper.InitSliderStyles();
-
             UpdateCursorState();
 
             DebugCheats.texture2 = new Texture2D(2, 2, TextureFormat.ARGB32, false);
@@ -865,6 +855,15 @@ namespace r.e.p.o_cheat
         {
             if (!initialized)
             {
+                UIHelper.InitSliderStyles();
+                menuStyle = new GUIStyle(GUI.skin.box)
+                {
+                    normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
+                    fontSize = 16,
+                    alignment = TextAnchor.MiddleCenter,
+                    padding = new RectOffset(10, 10, 10, 10),
+                    border = new RectOffset(5, 5, 5, 5)
+                };
                 Start();
                 initialized = true;
             }
@@ -872,7 +871,7 @@ namespace r.e.p.o_cheat
             if (DebugCheats.drawEspBool || DebugCheats.drawItemEspBool || DebugCheats.drawExtractionPointEspBool || DebugCheats.drawPlayerEspBool || DebugCheats.draw3DPlayerEspBool || DebugCheats.draw3DItemEspBool) DebugCheats.DrawESP();
 
             GUI.Label(new Rect(10, 10, 200, 30), "D.A.R.K CHEAT | DEL - MENU");
-            GUI.Label(new Rect(198, 10, 200, 30), "MADE BY Github/D4rkks");
+            GUI.Label(new Rect(198, 10, 200, 30), BuildInfo.BuildDate);
 
             if (showMenu)
             {
