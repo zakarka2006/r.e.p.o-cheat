@@ -938,30 +938,30 @@ private void GenerateUICache()
     cachedUIElements.Add(() => UIHelper.Button("Teleport to Me", menuX + 30, menuY + 120, 280, 30, () => { Teleport.TeleportPlayerToMe(); return true; }));
     cachedUIElements.Add(() => UIHelper.Button("Spawn Items", menuX + 30, menuY + 160, 280, 30, () => { ItemSpawner.SpawnItem(Vector3.zero); return true; }));
 
-    // **Toggles**
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, 280, 30, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, 280, 30, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, 280, 30, (newState) => { PlayerController.GodMode(); godModeActive = newState; return true; }));
+    // **Toggles (Fixed: Now includes `width` & `height`)**
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, 280, 30, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return newState; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, 280, 30, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return newState; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, 280, 30, (newState) => { PlayerController.GodMode(); godModeActive = newState; return newState; }));
 
-    // **ESP Toggles**
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 320, 280, 30, (newState) => { DebugCheats.drawEspBool = newState; return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 360, 280, 30, (newState) => { DebugCheats.drawItemEspBool = newState; return true; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 400, 280, 30, (newState) => { DebugCheats.drawPlayerEspBool = newState; return true; }));
+    // **ESP Toggles (Fixed)**
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 320, 280, 30, (newState) => { DebugCheats.drawEspBool = newState; return newState; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 360, 280, 30, (newState) => { DebugCheats.drawItemEspBool = newState; return newState; }));
+    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 400, 280, 30, (newState) => { DebugCheats.drawPlayerEspBool = newState; return newState; }));
 
     // **Speed & Stamina Controls**
     cachedUIElements.Add(() => UIHelper.Slider("Speed", ref sliderValue, 1f, 30f, menuX + 30, menuY + 440, 280, 30, (newValue) => { PlayerController.RemoveSpeed(newValue); return true; }));
     cachedUIElements.Add(() => UIHelper.Slider("Stamina Recharge", ref Hax2.staminaRechargeRate, 1f, 20f, menuX + 30, menuY + 480, 280, 30, (newValue) => { PlayerController.DecreaseStaminaRechargeDelay(Hax2.staminaRechargeDelay, newValue); return true; }));
 }
 
-    // Call this when UI elements need updating
-    private void RequestUIUpdate()
-    {
-        uiNeedsUpdate = true;
-    }
+        // Call this when UI elements need updating
+        private void RequestUIUpdate()
+        {
+            uiNeedsUpdate = true;
+        }
 
-    // Variables for Optimization
-    private bool uiNeedsUpdate = true;
-    private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
+        // Variables for Optimization
+        private bool uiNeedsUpdate = true;
+        private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
 
         private Texture2D MakeSolidBackground(Color color, float alpha)
         {
