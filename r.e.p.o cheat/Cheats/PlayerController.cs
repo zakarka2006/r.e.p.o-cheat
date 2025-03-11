@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace r.e.p.o_cheat
 {
-     class PlayerController
+    class PlayerController
     {
         public static object playerSpeedInstance;
         public static object reviveInstance;
@@ -393,5 +393,67 @@ namespace r.e.p.o_cheat
             }
         }
 
+        public static void SetGrabRange(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var playerAvatarScript = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance)?.GetValue(playerControllerInstance);
+            if (playerAvatarScript == null) return;
+
+            var physGrabber = playerAvatarScript.GetType().GetField("physGrabber", BindingFlags.Public | BindingFlags.Instance)?.GetValue(playerAvatarScript);
+            if (physGrabber == null) return;
+
+            var grabRangeField = physGrabber.GetType().GetField("grabRange", BindingFlags.Public | BindingFlags.Instance);
+            if (grabRangeField != null)
+            {
+                grabRangeField.SetValue(physGrabber, value);
+                Hax2.Log1($"GrabRange set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("GrabRange field not found in PhysGrabber.");
+            }
+        }
+
+        public static void SetThrowStrength(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var playerAvatarScript = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance)?.GetValue(playerControllerInstance);
+            if (playerAvatarScript == null) return;
+
+            var physGrabber = playerAvatarScript.GetType().GetField("physGrabber", BindingFlags.Public | BindingFlags.Instance)?.GetValue(playerAvatarScript);
+            if (physGrabber == null) return;
+
+            var throwStrengthField = physGrabber.GetType().GetField("throwStrength", BindingFlags.Public | BindingFlags.Instance);
+            if (throwStrengthField != null)
+            {
+                throwStrengthField.SetValue(physGrabber, value);
+                Hax2.Log1($"ThrowStrength set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("ThrowStrength field not found in PhysGrabber.");
+            }
+        }
+
+        public static void SetSlideDecay(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var slideDecayField = playerControllerType.GetField("SlideDecay", BindingFlags.Public | BindingFlags.Instance);
+            if (slideDecayField != null)
+            {
+                slideDecayField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"SlideDecay set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("SlideDecay field not found in PlayerController.");
+            }
+        }
     }
 }
