@@ -77,14 +77,15 @@ public static void DisableMethod(string methodName)
             Hax2.Log1($"Modified method: {methodName} (Patched with {BitConverter.ToString(patch)})");
         }
 
-        public static void DisableAll()
-        {
-            DisableMethod("ImpactHurtSet");
-            DisableMethod("ImpactHurtSetRPC");
-            DisableMethod("Update");
-            DisableMethod("TumbleSet");
-            DisableMethod("Setup");
-        }
+public static void DisableAll()
+{
+    DisableMethod("ImpactHurtSet");
+    DisableMethod("ImpactHurtSetRPC");
+    DisableMethod("TumbleSet");
+
+    // Log instead of disabling critical methods
+    Hax2.Log1("Skipping disabling Update() and Setup() to prevent crashes.");
+}
 
         public static void EnableAll()
         {
