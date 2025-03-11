@@ -222,5 +222,102 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("Reapplied stamina settings after scene change.");
             }
         }
+        
+        public static void SetFlashlightIntensity(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
+            if (playerAvatarScriptField != null)
+            {
+                var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+                if (playerAvatarScriptInstance != null)
+                {
+                    var flashlightControllerField = playerAvatarScriptInstance.GetType().GetField("flashlightController", BindingFlags.Public | BindingFlags.Instance);
+                    if (flashlightControllerField != null)
+                    {
+                        var flashlightControllerInstance = flashlightControllerField.GetValue(playerAvatarScriptInstance);
+                        if (flashlightControllerInstance != null)
+                        {
+                            var baseIntensityField = flashlightControllerInstance.GetType().GetField("baseIntensity", BindingFlags.Public | BindingFlags.Instance);
+                            if (baseIntensityField != null)
+                            {
+                                baseIntensityField.SetValue(flashlightControllerInstance, value);
+                                Hax2.Log1($"Flashlight BaseIntensity set to {value}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void SetCrouchDelay(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var crouchTimeMinField = playerControllerType.GetField("CrouchTimeMin", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (crouchTimeMinField != null)
+            {
+                crouchTimeMinField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"CrouchTimeMin set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("CrouchTimeMin field not found in PlayerController.");
+            }
+        }
+
+        public static void SetJumpForce(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var jumpForceField = playerControllerType.GetField("JumpForce", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (jumpForceField != null)
+            {
+                jumpForceField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"JumpForce set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("JumpForce field not found in PlayerController.");
+            }
+        }
+
+        public static void SetExtraJumps(int value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var jumpExtraField = playerControllerType.GetField("JumpExtra", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (jumpExtraField != null)
+            {
+                jumpExtraField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"JumpExtra set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("JumpExtra field not found in PlayerController.");
+            }
+        }
+
+        public static void SetCustomGravity(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var customGravityField = playerControllerType.GetField("CustomGravity", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (customGravityField != null)
+            {
+                customGravityField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"CustomGravity set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("CustomGravity field not found in PlayerController.");
+            }
+        }
     }
 }
