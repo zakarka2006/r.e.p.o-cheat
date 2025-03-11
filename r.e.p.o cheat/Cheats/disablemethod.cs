@@ -30,11 +30,15 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public static void DisableMethod(string methodName)
-        {
-            ModifyMethod(methodName, disableBytes);
-        }
-
+public static void DisableMethod(string methodName)
+{
+    if (methodName == "Update" || methodName == "Setup")
+    {
+        Hax2.Log1($"Skipping disable for critical method: {methodName}");
+        return;
+    }
+    ModifyMethod(methodName, disableBytes);
+}
         public static void EnableMethod(string methodName)
         {
             ModifyMethod(methodName, enableBytes);
@@ -73,14 +77,15 @@ namespace r.e.p.o_cheat
             Hax2.Log1($"Modified method: {methodName} (Patched with {BitConverter.ToString(patch)})");
         }
 
-        public static void DisableAll()
-        {
-            DisableMethod("ImpactHurtSet");
-            DisableMethod("ImpactHurtSetRPC");
-            DisableMethod("Update");
-            DisableMethod("TumbleSet");
-            DisableMethod("Setup");
-        }
+public static void DisableAll()
+{
+    DisableMethod("ImpactHurtSet");
+    DisableMethod("ImpactHurtSetRPC");
+    DisableMethod("TumbleSet");
+
+    // Log instead of disabling critical methods
+    Hax2.Log1("Skipping disabling Update() and Setup() to prevent crashes.");
+}
 
         public static void EnableAll()
         {
