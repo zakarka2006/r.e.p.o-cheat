@@ -914,7 +914,7 @@ namespace r.e.p.o_cheat
                 Rect titleRect = new Rect(menuX, menuY, 600, titleBarHeight);
 
                 GUI.Box(menuRect, "", menuStyle);
-                UIHelper.Begin("D.A.R.K. Menu 1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
+                UIHelper.Begin("D.A.R.K. Menu 1.1.1.1", menuX, menuY, 600, 800, 30, 30, 10);
 
                 if (Event.current.type == EventType.MouseDown && titleRect.Contains(Event.current.mousePosition))
                 {
@@ -1134,10 +1134,10 @@ namespace r.e.p.o_cheat
                         Hax2.customGravity = UIHelper.Slider(Hax2.customGravity, -10f, 50f, menuX + 30, menuY + 405);
 
                         UIHelper.Label("Set Grab Range: " + Hax2.grabRange, menuX + 30, menuY + 425);
-                        Hax2.grabRange = UIHelper.Slider(Hax2.grabRange, -10f, 50f, menuX + 30, menuY + 445);
+                        Hax2.grabRange = UIHelper.Slider(Hax2.grabRange, 0f, 50f, menuX + 30, menuY + 445);
 
                         UIHelper.Label("Set Throw Strength: " + Hax2.throwStrength, menuX + 30, menuY + 465);
-                        Hax2.throwStrength = UIHelper.Slider(Hax2.throwStrength, -10f, 50f, menuX + 30, menuY + 485);
+                        Hax2.throwStrength = UIHelper.Slider(Hax2.throwStrength, 0f, 50f, menuX + 30, menuY + 485);
 
                         UIHelper.Label("Set Slide Decay: " + Hax2.slideDecay, menuX + 30, menuY + 505);
                         Hax2.slideDecay = UIHelper.Slider(Hax2.slideDecay, -10f, 50f, menuX + 30, menuY + 525);
