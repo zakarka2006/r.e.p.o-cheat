@@ -22,6 +22,8 @@ namespace r.e.p.o_cheat
         private static int debugColumns = 1;
 
         private static GUIStyle debugLabelStyle = null;
+        private static GUIStyle sliderStyle;
+        private static GUIStyle thumbStyle;
 
         public static bool ButtonBool(string text, bool value, float? customX = null, float? customY = null)
         {
@@ -108,26 +110,35 @@ namespace r.e.p.o_cheat
             return GUI.Button(rect, text);
         }
 
+        public static void InitSliderStyles()
+        {
+            Debug.Log("InitSliderStyles");
+            // Estilo personalizado para o slider
+            if (sliderStyle == null)
+            {
+                sliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
+                {
+                    normal = { background = MakeSolidBackground(new Color(0.7f, 0.7f, 0.7f), 1f) },
+                    hover = { background = MakeSolidBackground(new Color(0.8f, 0.8f, 0.8f), 1f) },
+                    active = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) }
+                };
+            }
+            if (thumbStyle == null)
+            {
+                thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb)
+                {
+                    normal = { background = MakeSolidBackground(Color.white, 1f) },
+                    hover = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) },
+                    active = { background = MakeSolidBackground(Color.green, 1f) }
+                };
+            }
+        }
+
         public static string MakeEnable(string text, bool state) => $"{text}{(state ? "ON" : "OFF")}";
         public static void Label(string text, float? customX = null, float? customY = null) => GUI.Label(NextControlRect(customX, customY), text);
         public static float Slider(float val, float min, float max, float? customX = null, float? customY = null)
         {
             Rect rect = NextControlRect(customX, customY);
-
-            // Estilo personalizado para o slider
-            GUIStyle sliderStyle = new GUIStyle(GUI.skin.horizontalSlider)
-            {
-                normal = { background = MakeSolidBackground(new Color(0.7f, 0.7f, 0.7f), 1f) },
-                hover = { background = MakeSolidBackground(new Color(0.8f, 0.8f, 0.8f), 1f) },
-                active = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) } 
-            };
-
-            GUIStyle thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb)
-            {
-                normal = { background = MakeSolidBackground(Color.white, 1f) },
-                hover = { background = MakeSolidBackground(new Color(0.9f, 0.9f, 0.9f), 1f) },
-                active = { background = MakeSolidBackground(Color.green, 1f) }
-            };
 
             return Mathf.Round(GUI.HorizontalSlider(rect, val, min, max, sliderStyle, thumbStyle));
         }
@@ -175,6 +186,10 @@ namespace r.e.p.o_cheat
         private bool showDebugMenu = false;
         private Vector2 playerScrollPosition = Vector2.zero;
         private Vector2 enemyScrollPosition = Vector2.zero;
+
+        private GUIStyle menuStyle;
+        private bool initialized = false;
+        private static Dictionary<Color, Texture2D> solidTextures = new Dictionary<Color, Texture2D>();
 
         private enum MenuCategory { Player, ESP, Combat, Misc, Enemies, Items }
         private MenuCategory currentCategory = MenuCategory.Player;
@@ -858,10 +873,6 @@ namespace r.e.p.o_cheat
             }
         }
 
-public void OnGUI()
-{
-    if (!showMenu) return;
-
     // Update UI cache if needed
     if (uiNeedsUpdate)
     {
@@ -925,50 +936,17 @@ public void OnGUI()
                 GUI.Label(new Rect(410, 70 + (i * 20), 280, 20), debugLogMessages[i].message);
             }
         }
-    }
-}
 
-// **Generates UI Elements Dynamically (Buttons, Sliders, Toggles)**
-private void GenerateUICache()
-{
-    cachedUIElements.Clear();
-
-    // **Player Features**
-    cachedUIElements.Add(() => UIHelper.Button("God Mode", menuX + 30, menuY + 80, 280, 30, () => { PlayerController.GodMode(); return true; }));
-    cachedUIElements.Add(() => UIHelper.Button("Teleport to Me", menuX + 30, menuY + 120, 280, 30, () => { Teleport.TeleportPlayerToMe(); return true; }));
-    cachedUIElements.Add(() => UIHelper.Button("Spawn Items", menuX + 30, menuY + 160, 280, 30, () => { ItemSpawner.SpawnItem(Vector3.zero); return true; }));
-
-    // **Toggles (Fixed: Now includes `width` & `height`)**
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Health", infiniteHealthActive, menuX + 30, menuY + 200, 280, 30, (newState) => { infiniteHealthActive = newState; Health_Player.MaxHealth(); return newState; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle Infinite Stamina", stamineState, menuX + 30, menuY + 240, 280, 30, (newState) => { stamineState = newState; PlayerController.MaxStamina(); return newState; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Toggle God Mode", godModeActive, menuX + 30, menuY + 280, 280, 30, (newState) => { PlayerController.GodMode(); godModeActive = newState; return newState; }));
-
-    // **ESP Toggles (Fixed)**
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable ESP", DebugCheats.drawEspBool, menuX + 30, menuY + 320, 280, 30, (newState) => { DebugCheats.drawEspBool = newState; return newState; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Item ESP", DebugCheats.drawItemEspBool, menuX + 30, menuY + 360, 280, 30, (newState) => { DebugCheats.drawItemEspBool = newState; return newState; }));
-    cachedUIElements.Add(() => UIHelper.ButtonBool("Enable Player ESP", DebugCheats.drawPlayerEspBool, menuX + 30, menuY + 400, 280, 30, (newState) => { DebugCheats.drawPlayerEspBool = newState; return newState; }));
-
-    // **Speed & Stamina Controls**
-    cachedUIElements.Add(() => UIHelper.Slider("Speed", ref sliderValue, 1f, 30f, menuX + 30, menuY + 440, 280, 30, (newValue) => { PlayerController.RemoveSpeed(newValue); return true; }));
-    cachedUIElements.Add(() => UIHelper.Slider("Stamina Recharge", ref Hax2.staminaRechargeRate, 1f, 20f, menuX + 30, menuY + 480, 280, 30, (newValue) => { PlayerController.DecreaseStaminaRechargeDelay(Hax2.staminaRechargeDelay, newValue); return true; }));
-}
-
-        // Call this when UI elements need updating
-        private void RequestUIUpdate()
         {
-            uiNeedsUpdate = true;
-        }
-
-        // Variables for Optimization
-        private bool uiNeedsUpdate = true;
-        private List<Func<bool>> cachedUIElements = new List<Func<bool>>();
-
-        private Texture2D MakeSolidBackground(Color color, float alpha)
-        {
-            Texture2D texture = new Texture2D(1, 1);
-            texture.SetPixel(0, 0, new Color(color.r, color.g, color.b, alpha));
-            texture.Apply();
-            return texture;
+            Color key = new Color(color.r, color.g, color.b, alpha);
+            if (!solidTextures.ContainsKey(color))
+            {
+                Texture2D texture = new Texture2D(1, 1);
+                texture.SetPixel(0, 0, key);
+                texture.Apply();
+                solidTextures[color] = texture;
+            }
+            return solidTextures[color];
         }
 
         public static void Log1(string message) => debugLogMessages.Add(new DebugLogMessage(message, Time.time));
