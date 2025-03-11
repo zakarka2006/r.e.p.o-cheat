@@ -72,3 +72,7 @@ Im still looking to advance this cheat even more, since its very simple to make 
 Main UC Thread: https://www.unknowncheats.me/forum/other-mmorpg-and-strategy/689820-simple-cheat.html#post4335827
 
 Our discord link for general help: https://discord.gg/PQY3nxJMHp
+
+
+Star history:
+<iframe style="width:100%;height:auto;min-width:600px;min-height:400px;" src="https://www.star-history.com/embed?secret=#D4rkks/r.e.p.o-cheat&Date" frameBorder="0"></iframe>
