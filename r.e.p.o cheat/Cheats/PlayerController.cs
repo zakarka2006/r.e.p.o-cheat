@@ -10,9 +10,6 @@ namespace r.e.p.o_cheat
 {
     static class PlayerController
     {
-        public static object playerSpeedInstance;
-        public static object reviveInstance;
-        public static object enemyDirectorInstance;
         public static object playerControllerInstance;
         public static Type playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
 
@@ -38,141 +35,161 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public static void GodMode()
+        public static void SetFlashlightIntensity(float value)
         {
-            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerControllerType != null)
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
+            if (playerAvatarScriptField != null)
             {
-                Hax2.Log1("PlayerController found.");
-
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
-                if (playerControllerInstance != null)
+                var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+                if (playerAvatarScriptInstance != null)
                 {
-                    var playerAvatarScriptField = playerControllerInstance.GetType().GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
-                    if (playerAvatarScriptField != null)
+                    var flashlightControllerField = playerAvatarScriptInstance.GetType().GetField("flashlightController", BindingFlags.Public | BindingFlags.Instance);
+                    if (flashlightControllerField != null)
                     {
-                        var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
-
-                        var playerHealthField = playerAvatarScriptInstance.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.Instance);
-                        if (playerHealthField != null)
+                        var flashlightControllerInstance = flashlightControllerField.GetValue(playerAvatarScriptInstance);
+                        if (flashlightControllerInstance != null)
                         {
-                            var playerHealthInstance = playerHealthField.GetValue(playerAvatarScriptInstance);
-
-                            var godModeField = playerHealthInstance.GetType().GetField("godMode", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                            if (godModeField != null)
+                            var baseIntensityField = flashlightControllerInstance.GetType().GetField("baseIntensity", BindingFlags.Public | BindingFlags.Instance);
+                            if (baseIntensityField != null)
                             {
-                                bool currentGodMode = (bool)godModeField.GetValue(playerHealthInstance);
-
-                                bool newGodModeState = !currentGodMode;
-                                godModeField.SetValue(playerHealthInstance, newGodModeState);
-
-                                Hax2.godModeActive = !newGodModeState;
-
-                                Hax2.Log1("God Mode " + (newGodModeState ? "enabled" : "disabled"));
+                                baseIntensityField.SetValue(flashlightControllerInstance, value);
+                                Hax2.Log1($"BaseIntensity set to {value}");
                             }
                             else
                             {
-                                Hax2.Log1("godMode field not found in playerHealth.");
+                                Hax2.Log1("baseIntensity field not found in flashlightController.");
                             }
                         }
                         else
                         {
-                            Hax2.Log1("playerHealth field not found in playerAvatarScript.");
+                            Hax2.Log1("flashlightController instance not found in playerAvatarScript.");
                         }
                     }
                     else
                     {
-                        Hax2.Log1("playerAvatarScript field not found in PlayerController.");
+                        Hax2.Log1("flashlightController field not found in playerAvatarScript.");
                     }
                 }
                 else
                 {
-                    Hax2.Log1("playerControllerInstance not found.");
+                    Hax2.Log1("playerAvatarScript instance is null.");
                 }
             }
             else
             {
-                Hax2.Log1("PlayerController type not found.");
+                Hax2.Log1("playerAvatarScript field not found in PlayerController.");
             }
         }
 
-        public static void RemoveSpeed(float sliderValue)
+        public static void SetCrouchDelay(float value)
         {
-            var playerInSpeedType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerInSpeedType != null)
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var crouchTimeMinField = playerControllerType.GetField("CrouchTimeMin", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (crouchTimeMinField != null)
             {
-                Hax2.Log1("playerInSpeedType n é null");
-                playerSpeedInstance = GameHelper.FindObjectOfType(playerInSpeedType);
-                if (playerSpeedInstance != null)
-                {
-                    Hax2.Log1("playerSpeedInstance n é null");
-                }
-                else
-                {
-                    Hax2.Log1("playerSpeedInstance null");
-                }
+                crouchTimeMinField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"CrouchTimeMin set to {value}");
             }
             else
             {
-                Hax2.Log1("playerInSpeedType null");
-            }
-            if (playerSpeedInstance != null)
-            {
-                Hax2.Log1("playerSpeedInstance n é null");
-
-                var playerControllerType = playerSpeedInstance.GetType();
-
-                var moveSpeedField1 = playerControllerType.GetField("MoveSpeed", BindingFlags.Public | BindingFlags.Instance);
-
-                if (moveSpeedField1 != null)
-                {
-                    moveSpeedField1.SetValue(playerSpeedInstance, sliderValue);
-                    Hax2.Log1("MoveSpeed value set to " + sliderValue);
-                }
-                else
-                {
-                    Hax2.Log1("MoveSpeed field not found in PlayerController.");
-                }
+                Hax2.Log1("CrouchTimeMin field not found in PlayerController.");
             }
         }
 
-        public static void MaxStamina()
+        public static void SetJumpForce(float value)
         {
-            var playerControllerType = Type.GetType("PlayerController, Assembly-CSharp");
-            if (playerControllerType != null)
-            {
-                Hax2.Log1("PlayerController found.");
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
 
-                var playerControllerInstance = GameHelper.FindObjectOfType(playerControllerType);
-                if (playerControllerInstance != null)
+            var jumpForceField = playerControllerType.GetField("JumpForce", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (jumpForceField != null)
+            {
+                jumpForceField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"JumpForce set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("JumpForce field not found in PlayerController.");
+            }
+        }
+
+        public static void SetExtraJumps(int value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var jumpExtraField = playerControllerType.GetField("JumpExtra", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (jumpExtraField != null)
+            {
+                jumpExtraField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"JumpExtra set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("JumpExtra field not found in PlayerController.");
+            }
+        }
+
+        public static void SetCustomGravity(float value)
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var customGravityField = playerControllerType.GetField("CustomGravity", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (customGravityField != null)
+            {
+                customGravityField.SetValue(playerControllerInstance, value);
+                Hax2.Log1($"CustomGravity set to {value}");
+            }
+            else
+            {
+                Hax2.Log1("CustomGravity field not found in PlayerController.");
+            }
+        }
+
+        public static void GodMode()
+        {
+            InitializePlayerController();
+            if (playerControllerInstance == null) return;
+
+            var playerAvatarScriptField = playerControllerType.GetField("playerAvatarScript", BindingFlags.Public | BindingFlags.Instance);
+            if (playerAvatarScriptField != null)
+            {
+                var playerAvatarScriptInstance = playerAvatarScriptField.GetValue(playerControllerInstance);
+
+                var playerHealthField = playerAvatarScriptInstance.GetType().GetField("playerHealth", BindingFlags.Public | BindingFlags.Instance);
+                if (playerHealthField != null)
                 {
-                    var energyCurrentField = playerControllerInstance.GetType().GetField("EnergyCurrent", BindingFlags.Public | BindingFlags.Instance);
-                    if (energyCurrentField != null)
+                    var playerHealthInstance = playerHealthField.GetValue(playerAvatarScriptInstance);
+
+                    var godModeField = playerHealthInstance.GetType().GetField("godMode", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (godModeField != null)
                     {
-                        if (Hax2.stamineState)
-                        {
-                            energyCurrentField.SetValue(playerControllerInstance, 999999);
-                        }
-                        else if (!Hax2.stamineState)
-                        {
-                            energyCurrentField.SetValue(playerControllerInstance, 40);
-                        }
+                        bool currentGodMode = (bool)godModeField.GetValue(playerHealthInstance);
+                        bool newGodModeState = !currentGodMode;
+                        godModeField.SetValue(playerHealthInstance, newGodModeState);
 
-                        Hax2.Log1("EnergyCurrent set to " + (Hax2.stamineState ? 999999 : 40));
+                        Hax2.godModeActive = !newGodModeState;
+                        Hax2.Log1("God Mode " + (newGodModeState ? "enabled" : "disabled"));
                     }
                     else
                     {
-                        Hax2.Log1("EnergyCurrent field not found in playerAvatarScript.");
+                        Hax2.Log1("godMode field not found in playerHealth.");
                     }
                 }
                 else
                 {
-                    Hax2.Log1("playerControllerInstance not found.");
+                    Hax2.Log1("playerHealth field not found in playerAvatarScript.");
                 }
             }
             else
             {
-                Hax2.Log1("PlayerController type not found.");
+                Hax2.Log1("playerAvatarScript field not found in PlayerController.");
             }
         }
 
@@ -184,13 +201,10 @@ namespace r.e.p.o_cheat
             desiredDelayMultiplier = delayMultiplier;
             desiredRateMultiplier = rateMultiplier;
 
-            Hax2.Log1("Attempting to decrease stamina recharge delay.");
-
             var sprintRechargeTimeField = playerControllerType.GetField("sprintRechargeTime", BindingFlags.NonPublic | BindingFlags.Instance);
             if (sprintRechargeTimeField != null)
             {
-                float defaultRechargeTime = 1f;
-                float newRechargeTime = defaultRechargeTime * delayMultiplier;
+                float newRechargeTime = 1f * delayMultiplier;
                 sprintRechargeTimeField.SetValue(playerControllerInstance, newRechargeTime);
                 Hax2.Log1($"sprintRechargeTime set to {newRechargeTime} (multiplier: {delayMultiplier})");
             }
@@ -202,24 +216,13 @@ namespace r.e.p.o_cheat
             var sprintRechargeAmountField = playerControllerType.GetField("sprintRechargeAmount", BindingFlags.NonPublic | BindingFlags.Instance);
             if (sprintRechargeAmountField != null)
             {
-                float defaultRechargeAmount = 2f;
-                float newRechargeAmount = defaultRechargeAmount * rateMultiplier;
+                float newRechargeAmount = 2f * rateMultiplier;
                 sprintRechargeAmountField.SetValue(playerControllerInstance, newRechargeAmount);
                 Hax2.Log1($"sprintRechargeAmount set to {newRechargeAmount} (multiplier: {rateMultiplier})");
             }
             else
             {
                 Hax2.Log1("sprintRechargeAmount field not found in PlayerController.");
-            }
-        }
-
-        public static void ReapplyStaminaSettings()
-        {
-            InitializePlayerController();
-            if (playerControllerInstance != null)
-            {
-                DecreaseStaminaRechargeDelay(desiredDelayMultiplier, desiredRateMultiplier);
-                Hax2.Log1("Reapplied stamina settings after scene change.");
             }
         }
     }
