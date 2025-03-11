@@ -30,11 +30,15 @@ namespace r.e.p.o_cheat
             }
         }
 
-        public static void DisableMethod(string methodName)
-        {
-            ModifyMethod(methodName, disableBytes);
-        }
-
+public static void DisableMethod(string methodName)
+{
+    if (methodName == "Update" || methodName == "Setup")
+    {
+        Hax2.Log1($"Skipping disable for critical method: {methodName}");
+        return;
+    }
+    ModifyMethod(methodName, disableBytes);
+}
         public static void EnableMethod(string methodName)
         {
             ModifyMethod(methodName, enableBytes);
