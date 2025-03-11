@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace r.e.p.o_cheat
 {
-     class PlayerController
+    class PlayerController
     {
         public static object playerSpeedInstance;
         public static object reviveInstance;
@@ -318,7 +318,7 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("JumpExtra field not found in PlayerController.");
             }
         }
-          
+
         public static void SetCustomGravity(float value)
         {
             InitializePlayerController();
@@ -438,7 +438,7 @@ namespace r.e.p.o_cheat
                 Hax2.Log1("ThrowStrength field not found in PhysGrabber.");
             }
         }
-        
+
         public static void SetSlideDecay(float value)
         {
             InitializePlayerController();

@@ -12,41 +12,72 @@ namespace r.e.p.o_cheat
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)
             {
-                Hax2.Log1("Invalid player index!");
+                Hax2.Log1("Índice de jogador inválido!");
                 return;
             }
             var selectedPlayer = playerList[selectedPlayerIndex];
             if (selectedPlayer == null)
             {
-                Hax2.Log1("Selected player is null!");
+                Hax2.Log1("Jogador selecionado é nulo!");
                 return;
             }
 
-            GameObject localPlayer = DebugCheats.GetLocalPlayer();
-            if (localPlayer == null)
+            try
             {
-                Hax2.Log1("Local player not found!");
-                return;
+                GameObject localPlayer = DebugCheats.GetLocalPlayer();
+                if (localPlayer == null)
+                {
+                    Hax2.Log1("Jogador local não encontrado!");
+                    return;
+                }
+
+                var photonViewField = selectedPlayer.GetType().GetField("photonView", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (photonViewField == null)
+                {
+                    Hax2.Log1("PhotonViewField não encontrado no jogador selecionado!");
+                    return;
+                }
+                var photonView = photonViewField.GetValue(selectedPlayer) as PhotonView;
+                if (photonView == null)
+                {
+                    Hax2.Log1("PhotonView não é válido!");
+                    return;
+                }
+
+                var playerMono = selectedPlayer as MonoBehaviour;
+                if (playerMono == null)
+                {
+                    Hax2.Log1("selectedPlayer não é um MonoBehaviour!");
+                    return;
+                }
+
+                var transform = playerMono.transform;
+                if (transform == null)
+                {
+                    Hax2.Log1("Transform do jogador selecionado é nulo!");
+                    return;
+                }
+
+                Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
+                transform.position = targetPosition;
+                Hax2.Log1($"Jogador {playerNames[selectedPlayerIndex]} teleportado localmente para {targetPosition}");
+
+                if (PhotonNetwork.IsConnected && photonView != null)
+                {
+                    photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { targetPosition, transform.rotation });
+                    Hax2.Log1($"RPC 'SpawnRPC' enviado para todos com posição: {targetPosition}");
+                }
+                else
+                {
+                    Hax2.Log1("Não conectado ao Photon, teleporte apenas local.");
+                }
             }
-
-            // Ensure transform is valid
-            if (!(selectedPlayer is MonoBehaviour playerMono) || playerMono.transform == null)
+            catch (Exception e)
             {
-                Hax2.Log1("Invalid player transform!");
-                return;
-            }
-
-            Vector3 targetPosition = localPlayer.transform.position + Vector3.up * 1.5f;
-            playerMono.transform.position = targetPosition;
-
-            // Ensure PhotonView exists before attempting RPC
-            PhotonView photonView = playerMono.GetComponent<PhotonView>();
-            if (photonView != null && PhotonNetwork.IsConnected)
-            {
-                photonView.RPC("SpawnRPC", RpcTarget.AllBuffered, new object[] { targetPosition, playerMono.transform.rotation });
-                Hax2.Log1($"Sent RPC 'SpawnRPC' to sync teleport.");
+                Hax2.Log1($"Erro ao teleportar {playerNames[selectedPlayerIndex]} até você: {e.Message}");
             }
         }
+
         public static void TeleportMeToPlayer(int selectedPlayerIndex, List<object> playerList, List<string> playerNames)
         {
             if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerList.Count)

@@ -205,6 +205,9 @@ namespace r.e.p.o_cheat
         public static float flashlightIntensity = 1f;
         public static float crouchDelay = 1f;
         public static float crouchSpeed = 1f;
+        public static float grabRange = 1f;
+        public static float throwStrength = 1f;
+        public static float slideDecay = 1f;
 
         public static float OldflashlightIntensity = 1f;
         public static float OldcrouchDelay = 1f;
@@ -212,6 +215,10 @@ namespace r.e.p.o_cheat
         public static float OldcustomGravity = 1f;
         public static float OldextraJumps = 1f;
         public static float OldcrouchSpeed = 1f;
+        public static float OldgrabRange = 1f;
+        public static float OldthrowStrength = 1f;
+        public static float OldslideDecay = 1f;
+
 
         private List<ItemTeleport.GameItem> itemList = new List<ItemTeleport.GameItem>();
         private int selectedItemIndex = 0;
@@ -1126,6 +1133,16 @@ namespace r.e.p.o_cheat
                         UIHelper.Label("Set Custom Gravity: " + Hax2.customGravity, menuX + 30, menuY + 385);
                         Hax2.customGravity = UIHelper.Slider(Hax2.customGravity, -10f, 50f, menuX + 30, menuY + 405);
 
+                        UIHelper.Label("Set Grab Range: " + Hax2.grabRange, menuX + 30, menuY + 425);
+                        Hax2.grabRange = UIHelper.Slider(Hax2.grabRange, -10f, 50f, menuX + 30, menuY + 445);
+
+                        UIHelper.Label("Set Throw Strength: " + Hax2.throwStrength, menuX + 30, menuY + 465);
+                        Hax2.throwStrength = UIHelper.Slider(Hax2.throwStrength, -10f, 50f, menuX + 30, menuY + 485);
+
+                        UIHelper.Label("Set Slide Decay: " + Hax2.slideDecay, menuX + 30, menuY + 505);
+                        Hax2.slideDecay = UIHelper.Slider(Hax2.slideDecay, -10f, 50f, menuX + 30, menuY + 525);
+
+
                         if (Hax2.flashlightIntensity != OldflashlightIntensity)
                         {
                             PlayerController.SetFlashlightIntensity(Hax2.flashlightIntensity);
@@ -1155,6 +1172,21 @@ namespace r.e.p.o_cheat
                         {
                             PlayerController.SetCrouchSpeed(Hax2.crouchSpeed);
                             OldcrouchSpeed = Hax2.crouchSpeed;
+                        }
+                        if (Hax2.grabRange != Hax2.OldgrabRange)
+                        {
+                            PlayerController.SetGrabRange(Hax2.grabRange);
+                            OldgrabRange = Hax2.grabRange;
+                        }
+                        if (Hax2.throwStrength != Hax2.OldthrowStrength)
+                        {
+                            PlayerController.SetThrowStrength(Hax2.throwStrength);
+                            OldthrowStrength = Hax2.throwStrength;
+                        }
+                        if (Hax2.slideDecay != Hax2.OldslideDecay)
+                        {
+                            PlayerController.SetSlideDecay(Hax2.slideDecay);
+                            OldslideDecay = Hax2.slideDecay;
                         }
                         break;
 
