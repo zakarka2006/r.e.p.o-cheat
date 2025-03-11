@@ -255,29 +255,46 @@ namespace r.e.p.o_cheat
         public void Update()
         {
             Strength.UpdateStrength();
+
+            // Limit update frequency to prevent lag
             if (Time.time >= nextUpdateTime)
             {
                 DebugCheats.UpdateEnemyList();
                 Log1("Lista de inimigos atualizada!");
                 nextUpdateTime = Time.time + updateInterval;
             }
-            if (Time.time - lastItemListUpdateTime > itemListUpdateInterval)
+
+            // Reduce item list updates from every frame to every 5 seconds
+            if (Time.time - lastItemListUpdateTime > 5f)
             {
                 UpdateItemList();
                 itemList = ItemTeleport.GetItemList();
                 lastItemListUpdateTime = Time.time;
             }
+
             if (oldSliderValue != sliderValue)
             {
                 PlayerController.RemoveSpeed(sliderValue);
                 oldSliderValue = sliderValue;
             }
+
             if (oldSliderValueStrength != sliderValueStrength)
             {
                 Strength.MaxStrength();
                 oldSliderValueStrength = sliderValueStrength;
             }
-            if (playerColor.isRandomizing) playerColor.colorRandomizer();
+
+            if (playerColor.isRandomizing)
+            {
+                playerColor.colorRandomizer();
+            }
+
+            // Prevent excessive logging by adding a cooldown
+            if (Time.time - lastItemListUpdateTime > 10f)
+            {
+                Log1($"Item list contains {itemList.Count} items.");
+                lastItemListUpdateTime = Time.time;
+            }
 
             if (Input.GetKeyDown(KeyCode.Delete))
             {
@@ -289,6 +306,7 @@ namespace r.e.p.o_cheat
                 }
                 UpdateCursorState();
             }
+
             if (Input.GetKeyDown(KeyCode.F5)) Start();
 
             if (Input.GetKeyDown(KeyCode.F10))
@@ -298,12 +316,15 @@ namespace r.e.p.o_cheat
                 UpdateCursorState();
                 Loader.UnloadCheat();
             }
-            if (Input.GetKeyDown(KeyCode.F12)) showDebugMenu = !showDebugMenu;
 
-            for (int i = debugLogMessages.Count - 1; i >= 0; i--)
+            if (Input.GetKeyDown(KeyCode.F12))
             {
-                if (Time.time - debugLogMessages[i].timestamp > 3f) debugLogMessages.RemoveAt(i);
+                showDebugMenu = !showDebugMenu;
             }
+
+            // Remove outdated logs efficiently
+            debugLogMessages.RemoveAll(msg => Time.time - msg.timestamp > 3f);
+
             if (showMenu)
             {
                 TryLockCamera();

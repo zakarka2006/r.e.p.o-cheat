@@ -8,18 +8,27 @@ public class ItemSpawner : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsConnected)
         {
-            Debug.Log("Não conectado ao Photon, spawn local apenas.");
+            Debug.Log("Offline mode: Spawning locally.");
             var localItem = Object.Instantiate(AssetManager.instance.surplusValuableSmall, position, Quaternion.identity);
-            EnsureItemVisibility(localItem);
+            if (localItem != null)
+            {
+                EnsureItemVisibility(localItem);
+            }
             return;
         }
 
         object[] instantiationData = new object[] { position.x, position.y, position.z };
-        var spawnedItem = PhotonNetwork.Instantiate("Valuables/" + AssetManager.instance.surplusValuableSmall.name,
-                                                  position, Quaternion.identity, 0, instantiationData);
-        Debug.Log("Item spawnado na posição: " + position);
+        var spawnedItem = PhotonNetwork.Instantiate("Valuables/" + AssetManager.instance.surplusValuableSmall.name, position, Quaternion.identity, 0, instantiationData);
 
-        ConfigureSyncComponents(spawnedItem);
+        if (spawnedItem != null)
+        {
+            Debug.Log("Item spawned at: " + position);
+            ConfigureSyncComponents(spawnedItem);
+        }
+        else
+        {
+            Debug.LogError("Item spawn failed!");
+        }
     }
 
     private static void ConfigureSyncComponents(GameObject item)
