@@ -303,6 +303,37 @@ namespace r.e.p.o_cheat
         }
     }
 
+    public static void SetItemValue(GameItem selectedItem, int newValue)
+{
+    if (selectedItem == null || selectedItem.ItemObject == null)
+    {
+        Hax2.Log1("Error: Selected item or ItemObject is null!");
+        return;
+    }
+
+    try
+    {
+        var itemType = selectedItem.ItemObject.GetType();
+        
+        var valueField = itemType.GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+
+
+        if (valueField == null)
+        {
+            Hax2.Log1($"Error: Could not find 'dollarValueCurrent' field in {selectedItem.Name}");
+            return;
+        }
+
+        valueField.SetValue(selectedItem.ItemObject, newValue);
+        selectedItem.Value = newValue;
+
+        Hax2.Log1($"Successfully set '{selectedItem.Name}' value to ${newValue}");
+    }
+    catch (Exception e)
+    {
+        Hax2.Log1($"Error setting value for '{selectedItem.Name}': {e.Message}");
+    }
+    
     public class DelayedPhysicsReset : MonoBehaviour
     {
         private Rigidbody rb;
