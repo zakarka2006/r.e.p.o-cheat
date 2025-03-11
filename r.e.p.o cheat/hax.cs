@@ -112,7 +112,6 @@ namespace r.e.p.o_cheat
 
         public static void InitSliderStyles()
         {
-            Debug.Log("InitSliderStyles");
             // Estilo personalizado para o slider
             if (sliderStyle == null)
             {
@@ -235,6 +234,16 @@ namespace r.e.p.o_cheat
 
         public void Start()
         {
+            menuStyle = new GUIStyle(GUI.skin.box)
+            {
+                normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
+                fontSize = 16,
+                alignment = TextAnchor.MiddleCenter,
+                padding = new RectOffset(10, 10, 10, 10),
+                border = new RectOffset(5, 5, 5, 5)
+            };
+
+            UIHelper.InitSliderStyles();
             UpdateCursorState();
 
             DebugCheats.texture2 = new Texture2D(2, 2, TextureFormat.ARGB32, false);
@@ -883,15 +892,6 @@ namespace r.e.p.o_cheat
         {
             if (!initialized)
             {
-                UIHelper.InitSliderStyles();
-                menuStyle = new GUIStyle(GUI.skin.box)
-                {
-                    normal = { background = MakeSolidBackground(new Color(0.21f, 0.21f, 0.21f), 0.7f) },
-                    fontSize = 16,
-                    alignment = TextAnchor.MiddleCenter,
-                    padding = new RectOffset(10, 10, 10, 10),
-                    border = new RectOffset(5, 5, 5, 5)
-                };
                 Start();
                 initialized = true;
             }
