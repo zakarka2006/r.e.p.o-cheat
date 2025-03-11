@@ -47,6 +47,9 @@ Basic C# Mono open-source cheat for a new lethal like game called R.E.P.O
 - Set Custom Extra Jumps<br />
 - Set Custom Gravity<br />
 - Change Item Value (host only)
+- Set Grab Range
+- Throw Strength
+- Slide Decay
 
 
 
