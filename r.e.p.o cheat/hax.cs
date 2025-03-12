@@ -399,17 +399,25 @@ namespace r.e.p.o_cheat
             Cursor.visible = showMenu;
             Cursor.lockState = showMenu ? CursorLockMode.None : CursorLockMode.Locked;
         }
+        
         private void UpdateItemList()
         {
             DebugCheats.valuableObjects.Clear();
+
             var valuableArray = UnityEngine.Object.FindObjectsOfType(Type.GetType("ValuableObject, Assembly-CSharp"));
             if (valuableArray != null)
             {
                 DebugCheats.valuableObjects.AddRange(valuableArray);
             }
 
+            var playerDeathHeadArray = UnityEngine.Object.FindObjectsOfType(Type.GetType("PlayerDeathHead, Assembly-CSharp"));
+            if (playerDeathHeadArray != null)
+            {
+                DebugCheats.valuableObjects.AddRange(playerDeathHeadArray);
+            }
+
             itemList = ItemTeleport.GetItemList();
-            Hax2.Log1($"Lista de itens atualizada: {itemList.Count} itens encontrados.");
+            Hax2.Log1($"Lista de itens atualizada: {itemList.Count} itens encontrados (incluindo ValuableObject e PlayerDeathHead).");
         }
 
         private void UpdateEnemyList()
