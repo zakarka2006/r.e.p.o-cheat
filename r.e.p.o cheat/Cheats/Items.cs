@@ -118,26 +118,33 @@ namespace r.e.p.o_cheat
                 }
 
                 int itemValue = 0;
-                var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
-                if (valueField != null)
+
+                // Only check dollarValueCurrent if it's NOT PlayerDeathHead
+                if (valuableObject.GetType().Name != "PlayerDeathHead")
                 {
-                    try
+                    var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+                    if (valueField != null)
                     {
-                        itemValue = Convert.ToInt32(valueField.GetValue(valuableObject));
+                        try
+                        {
+                            itemValue = Convert.ToInt32(valueField.GetValue(valuableObject));
+                        }
+                        catch (Exception e)
+                        {
+                            Hax2.Log1($"Error reading 'dollarValueCurrent' for '{itemName}': {e.Message}. Defaulting to 0.");
+                        }
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Hax2.Log1($"Error reading 'dollarValueCurrent' for '{itemName}': {e.Message}. Defaulting to 0.");
+                        Hax2.Log1($"Info: '{itemName}' does not have 'dollarValueCurrent', assuming value 0.");
                     }
-                }
-                else
-                {
-                    Hax2.Log1($"Info: '{itemName}' does not have 'dollarValueCurrent', assuming value 0.");
                 }
 
+                // Always add the item to the list, even if it's PlayerDeathHead
                 itemList.Add(new GameItem(itemName, itemValue, valuableObject));
             }
 
+            // Ensure there's at least one entry if nothing was found
             if (itemList.Count == 0)
             {
                 itemList.Add(new GameItem("No items found", 0));
@@ -145,7 +152,7 @@ namespace r.e.p.o_cheat
 
             return itemList;
         }
-
+        
         public static void TeleportItemToMe(GameItem selectedItem)
         {
             if (selectedItem == null || selectedItem.ItemObject == null)
