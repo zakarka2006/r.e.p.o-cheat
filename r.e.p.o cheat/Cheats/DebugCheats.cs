@@ -613,31 +613,57 @@ namespace r.e.p.o_cheat
                         float y = Screen.height - (screenPos.y * scaleY);
 
                         string itemName;
-                        try
+                        bool isPlayerDeathHead = valuableObject.GetType().Name == "PlayerDeathHead";
+
+                        if (isPlayerDeathHead)
                         {
-                            itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
-                            if (string.IsNullOrEmpty(itemName))
+                            itemName = "Dead Player Head";
+                            nameStyle.normal.textColor = Color.red;
+                        }
+                        else
+                        {
+                            nameStyle.normal.textColor = Color.yellow;
+
+                            try
+                            {
+                                itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
+                                if (string.IsNullOrEmpty(itemName))
+                                {
+                                    itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+                                }
+                            }
+                            catch (Exception e)
                             {
                                 itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+                                Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
+                            }
+
+                            if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
+                            {
+                                itemName = itemName.Substring("Valuable".Length).Trim();
+                            }
+                            if (itemName.EndsWith("(Clone)", StringComparison.OrdinalIgnoreCase))
+                            {
+                                itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
                             }
                         }
-                        catch (Exception e)
-                        {
-                            itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
-                            Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
-                        }
 
-                        if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
+                        int itemValue = 0;
+                        if (!isPlayerDeathHead)
                         {
-                            itemName = itemName.Substring("Valuable".Length).Trim();
+                            var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+                            if (valueField != null)
+                            {
+                                try
+                                {
+                                    itemValue = Convert.ToInt32(valueField.GetValue(valuableObject));
+                                }
+                                catch (Exception e)
+                                {
+                                    Hax2.Log1($"Error reading 'dollarValueCurrent' for '{itemName}': {e.Message}. Defaulting to 0.");
+                                }
+                            }
                         }
-                        if (itemName.EndsWith("(Clone)", StringComparison.OrdinalIgnoreCase))
-                        {
-                            itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
-                        }
-
-                        var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
-                        int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
 
                         string distanceText = "";
                         if (showItemDistance && localPlayer != null)
@@ -660,7 +686,7 @@ namespace r.e.p.o_cheat
                         {
                             GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameText, nameStyle);
                         }
-                        if (showItemValue)
+                        if (showItemValue && !isPlayerDeathHead)
                         {
                             GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
                         }
@@ -672,8 +698,8 @@ namespace r.e.p.o_cheat
                         }
                     }
                 }
-            }
-
+	    }
+	
             if (drawExtractionPointEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)

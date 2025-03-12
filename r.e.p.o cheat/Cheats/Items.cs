@@ -79,8 +79,19 @@ namespace r.e.p.o_cheat
             {
                 if (valuableObject == null) continue;
 
-                var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
-                if (transform == null || !transform.gameObject.activeInHierarchy) continue;
+                var transformProperty = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance);
+                if (transformProperty == null)
+                {
+                    Hax2.Log1($"Warning: Object '{valuableObject.GetType().Name}' does not have a 'transform' property. Skipping.");
+                    continue;
+                }
+
+                var transform = transformProperty.GetValue(valuableObject) as Transform;
+                if (transform == null || !transform.gameObject.activeInHierarchy)
+                {
+                    Hax2.Log1($"Warning: Object '{valuableObject.GetType().Name}' has an inactive or null transform. Skipping.");
+                    continue;
+                }
 
                 string itemName;
                 try
@@ -94,7 +105,7 @@ namespace r.e.p.o_cheat
                 catch (Exception e)
                 {
                     itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
-                    Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
+                    Hax2.Log1($"Error accessing 'name' of item: {e.Message}. Using GameObject name: {itemName}");
                 }
 
                 if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
@@ -106,12 +117,34 @@ namespace r.e.p.o_cheat
                     itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
                 }
 
-                var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
-                int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
+                int itemValue = 0;
 
+                // Only check dollarValueCurrent if it's NOT PlayerDeathHead
+                if (valuableObject.GetType().Name != "PlayerDeathHead")
+                {
+                    var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+                    if (valueField != null)
+                    {
+                        try
+                        {
+                            itemValue = Convert.ToInt32(valueField.GetValue(valuableObject));
+                        }
+                        catch (Exception e)
+                        {
+                            Hax2.Log1($"Error reading 'dollarValueCurrent' for '{itemName}': {e.Message}. Defaulting to 0.");
+                        }
+                    }
+                    else
+                    {
+                        Hax2.Log1($"Info: '{itemName}' does not have 'dollarValueCurrent', assuming value 0.");
+                    }
+                }
+
+                // Always add the item to the list, even if it's PlayerDeathHead
                 itemList.Add(new GameItem(itemName, itemValue, valuableObject));
             }
 
+            // Ensure there's at least one entry if nothing was found
             if (itemList.Count == 0)
             {
                 itemList.Add(new GameItem("No items found", 0));
@@ -119,7 +152,7 @@ namespace r.e.p.o_cheat
 
             return itemList;
         }
-
+        
         public static void TeleportItemToMe(GameItem selectedItem)
         {
             if (selectedItem == null || selectedItem.ItemObject == null)
