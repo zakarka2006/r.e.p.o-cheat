@@ -577,103 +577,116 @@ namespace r.e.p.o_cheat
                 }
             }
 
-            if (drawItemEspBool)
-            {
-                GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
-                {
-                    normal = { textColor = Color.yellow },
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 14,
-                    fontStyle = FontStyle.Bold,
-                    wordWrap = true,
-                    border = new RectOffset(1, 1, 1, 1)
-                };
+			if (drawItemEspBool)
+			{
+				GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
+				{
+					normal = { textColor = Color.yellow },
+					alignment = TextAnchor.MiddleCenter,
+					fontSize = 14,
+					fontStyle = FontStyle.Bold,
+					wordWrap = true,
+					border = new RectOffset(1, 1, 1, 1)
+				};
 
-                GUIStyle valueStyle = new GUIStyle(GUI.skin.label)
-                {
-                    normal = { textColor = Color.green },
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = 12,
-                    fontStyle = FontStyle.Bold
-                };
+				GUIStyle valueStyle = new GUIStyle(GUI.skin.label)
+				{
+					normal = { textColor = Color.green },
+					alignment = TextAnchor.MiddleCenter,
+					fontSize = 12,
+					fontStyle = FontStyle.Bold
+				};
 
-                foreach (var valuableObject in valuableObjects)
-                {
-                    if (valuableObject == null) continue;
+				foreach (var valuableObject in valuableObjects)
+				{
+					if (valuableObject == null) continue;
 
-                    var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
-                    if (transform == null || !transform.gameObject.activeInHierarchy) continue;
+					var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
+					if (transform == null || !transform.gameObject.activeInHierarchy) continue;
 
-                    Vector3 itemPosition = transform.position;
-                    Vector3 screenPos = cachedCamera.WorldToScreenPoint(itemPosition);
+					Vector3 itemPosition = transform.position;
+					Vector3 screenPos = cachedCamera.WorldToScreenPoint(itemPosition);
 
-                    if (screenPos.z > 0 && screenPos.x > 0 && screenPos.x < Screen.width && screenPos.y > 0 && screenPos.y < Screen.height)
-                    {
-                        float x = screenPos.x * scaleX;
-                        float y = Screen.height - (screenPos.y * scaleY);
+					if (screenPos.z > 0 && screenPos.x > 0 && screenPos.x < Screen.width && screenPos.y > 0 && screenPos.y < Screen.height)
+					{
+						float x = screenPos.x * scaleX;
+						float y = Screen.height - (screenPos.y * scaleY);
 
-                        string itemName;
-                        try
-                        {
-                            itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
-                            if (string.IsNullOrEmpty(itemName))
-                            {
-                                itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
-                            Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
-                        }
+						string itemName;
+						try
+						{
+							itemName = valuableObject.GetType().GetProperty("name", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as string;
+							if (string.IsNullOrEmpty(itemName))
+							{
+								itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+							}
+						}
+						catch (Exception e)
+						{
+							itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
+							Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
+						}
 
-                        if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
-                        {
-                            itemName = itemName.Substring("Valuable".Length).Trim();
-                        }
-                        if (itemName.EndsWith("(Clone)", StringComparison.OrdinalIgnoreCase))
-                        {
-                            itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
-                        }
+						if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
+						{
+							itemName = itemName.Substring("Valuable".Length).Trim();
+						}
+						if (itemName.EndsWith("(Clone)", StringComparison.OrdinalIgnoreCase))
+						{
+							itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
+						}
 
-                        var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
-                        int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
+						bool isPlayerDeathHead = valuableObject.GetType().Name == "PlayerDeathHead";
+						if (isPlayerDeathHead)
+						{
+							var playerAvatarField = valuableObject.GetType().GetField("playerAvatar", BindingFlags.Public | BindingFlags.Instance);
+							var playerAvatar = playerAvatarField?.GetValue(valuableObject);
+							itemName = playerAvatar != null ? playerAvatar.ToString() : "Dead Player";
+						}
 
-                        string distanceText = "";
-                        if (showItemDistance && localPlayer != null)
-                        {
-                            float distance = Vector3.Distance(localPlayer.transform.position, itemPosition);
-                            distanceText = $" [{distance:F1}m]";
-                        }
+						GUIStyle finalNameStyle = new GUIStyle(nameStyle);
+						if (isPlayerDeathHead)
+						{
+							finalNameStyle.normal.textColor = Color.red;
+						}
 
-                        string nameText = showItemNames ? itemName : "";
-                        if (showItemDistance) nameText += distanceText;
+						string distanceText = "";
+						if (showItemDistance && localPlayer != null)
+						{
+							float distance = Vector3.Distance(localPlayer.transform.position, itemPosition);
+							distanceText = $" [{distance:F1}m]";
+						}
 
-                        float labelWidth = 150f;
-                        float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(itemValue.ToString() + "$"), labelWidth);
-                        float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(nameText), labelWidth);
-                        float totalHeight = nameLabelHeight + valueLabelHeight + 5f;
-                        float labelX = x - labelWidth / 2f;
-                        float labelY = y - totalHeight - 5f;
+						string nameText = showItemNames ? itemName : "";
+						if (showItemDistance) nameText += distanceText;
 
-                        if (!string.IsNullOrEmpty(nameText))
-                        {
-                            GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameText, nameStyle);
-                        }
-                        if (showItemValue)
-                        {
-                            GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
-                        }
+						float labelWidth = 150f;
+						float nameLabelHeight = nameStyle.CalcHeight(new GUIContent(nameText), labelWidth);
+						float labelX = x - labelWidth / 2f;
+						float labelY = y - nameLabelHeight - 5f;
 
-                        if (draw3DItemEspBool)
-                        {
-                            Bounds bounds = GetActiveColliderBounds(transform.gameObject);
-                            CreateBoundsEdges(bounds, Color.yellow);
-                        }
-                    }
-                }
-            }
+						if (!string.IsNullOrEmpty(nameText))
+						{
+							GUI.Label(new Rect(labelX, labelY, labelWidth, nameLabelHeight), nameText, finalNameStyle);
+						}
 
+						if (!isPlayerDeathHead && showItemValue)
+						{
+							var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
+							int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
+							float valueLabelHeight = valueStyle.CalcHeight(new GUIContent(itemValue.ToString() + "$"), labelWidth);
+							GUI.Label(new Rect(labelX, labelY + nameLabelHeight + 2f, labelWidth, valueLabelHeight), itemValue.ToString() + "$", valueStyle);
+						}
+
+						if (draw3DItemEspBool)
+						{
+							Bounds bounds = GetActiveColliderBounds(transform.gameObject);
+							CreateBoundsEdges(bounds, isPlayerDeathHead ? Color.red : Color.yellow);
+						}
+					}
+				}
+			}
+            
             if (drawExtractionPointEspBool)
             {
                 GUIStyle nameStyle = new GUIStyle(GUI.skin.label)
