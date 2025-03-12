@@ -79,8 +79,19 @@ namespace r.e.p.o_cheat
             {
                 if (valuableObject == null) continue;
 
-                var transform = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance)?.GetValue(valuableObject) as Transform;
-                if (transform == null || !transform.gameObject.activeInHierarchy) continue;
+                var transformProperty = valuableObject.GetType().GetProperty("transform", BindingFlags.Public | BindingFlags.Instance);
+                if (transformProperty == null)
+                {
+                    Hax2.Log1($"Warning: Object '{valuableObject.GetType().Name}' does not have a 'transform' property. Skipping.");
+                    continue;
+                }
+
+                var transform = transformProperty.GetValue(valuableObject) as Transform;
+                if (transform == null || !transform.gameObject.activeInHierarchy)
+                {
+                    Hax2.Log1($"Warning: Object '{valuableObject.GetType().Name}' has an inactive or null transform. Skipping.");
+                    continue;
+                }
 
                 string itemName;
                 try
@@ -94,7 +105,7 @@ namespace r.e.p.o_cheat
                 catch (Exception e)
                 {
                     itemName = (valuableObject as UnityEngine.Object)?.name ?? "Unknown";
-                    Hax2.Log1($"Erro ao acessar 'name' do item: {e.Message}. Usando nome do GameObject: {itemName}");
+                    Hax2.Log1($"Error accessing 'name' of item: {e.Message}. Using GameObject name: {itemName}");
                 }
 
                 if (itemName.StartsWith("Valuable", StringComparison.OrdinalIgnoreCase))
@@ -106,8 +117,23 @@ namespace r.e.p.o_cheat
                     itemName = itemName.Substring(0, itemName.Length - "(Clone)".Length).Trim();
                 }
 
+                int itemValue = 0;
                 var valueField = valuableObject.GetType().GetField("dollarValueCurrent", BindingFlags.Public | BindingFlags.Instance);
-                int itemValue = valueField != null ? Convert.ToInt32(valueField.GetValue(valuableObject)) : 0;
+                if (valueField != null)
+                {
+                    try
+                    {
+                        itemValue = Convert.ToInt32(valueField.GetValue(valuableObject));
+                    }
+                    catch (Exception e)
+                    {
+                        Hax2.Log1($"Error reading 'dollarValueCurrent' for '{itemName}': {e.Message}. Defaulting to 0.");
+                    }
+                }
+                else
+                {
+                    Hax2.Log1($"Info: '{itemName}' does not have 'dollarValueCurrent', assuming value 0.");
+                }
 
                 itemList.Add(new GameItem(itemName, itemValue, valuableObject));
             }
