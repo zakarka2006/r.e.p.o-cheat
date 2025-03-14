@@ -6,7 +6,7 @@ using System.Collections;
 
 public static class NoclipController
 {
-    public static bool noclipActive = true;
+    public static bool noclipActive = false;
 
     private static float previousGravityValue;
     private static object playerControllerInstance;
@@ -125,14 +125,14 @@ public static class NoclipController
             Rigidbody rb = rbField.GetValue(playerControllerInstance) as Rigidbody;
             if (rb != null)
             {
-                rb.useGravity = noclipActive;
-                rb.isKinematic = !noclipActive;
+                rb.useGravity = !noclipActive;
+                rb.isKinematic = noclipActive;
 
-                if (!noclipActive)
+                if (noclipActive)
                 {
                     if (antiGravityMethod != null)
                     {
-                        antiGravityMethod.Invoke(playerControllerInstance, new object[] { 100000f });
+                        antiGravityMethod.Invoke(playerControllerInstance, new object[] { 100000000f });
                     }
                     else
                     {
@@ -153,9 +153,9 @@ public static class NoclipController
                 }
                 foreach (var collider in ((MonoBehaviour)playerControllerInstance).GetComponentsInChildren<Collider>())
                 {
-                    collider.isTrigger = !noclipActive;
+                    collider.isTrigger = noclipActive;
                 }
-                Debug.Log($"Player noclip {(noclipActive ? "disabled" : "enabled")}.");
+                Debug.Log($"Player noclip {(!noclipActive ? "disabled" : "enabled")}.");
             }
             else
             {
@@ -169,7 +169,7 @@ public static class NoclipController
 
         if (customGravityField != null)
         {
-            if (!noclipActive)
+            if (noclipActive)
             {
                 previousGravityValue = (float)customGravityField.GetValue(playerControllerInstance);
                 customGravityField.SetValue(playerControllerInstance, 0f);
@@ -188,38 +188,69 @@ public static class NoclipController
 
     public static void UpdateMovement()
     {
-        if (noclipActive || playerControllerInstance == null) return;
-
-        if (jumpAction == null || crouchAction == null || sprintAction == null)
-            InitializeInputActions();
-
-        Vector3 movement = Vector3.zero;
-        Transform cameraTransform = Camera.main.transform;
-        Transform playerTransform = ((MonoBehaviour)playerControllerInstance).transform;
-
-        // everyone use wasd, i think
-        if (Input.GetKey(KeyCode.W)) movement += cameraTransform.forward;
-        if (Input.GetKey(KeyCode.S)) movement -= cameraTransform.forward;
-        if (Input.GetKey(KeyCode.A)) movement -= cameraTransform.right;
-        if (Input.GetKey(KeyCode.D)) movement += cameraTransform.right;
-
-        if (jumpAction != null && jumpAction.IsPressed()) movement += Vector3.up;
-        if (crouchAction != null && crouchAction.IsPressed()) movement -= Vector3.up;
-
-        movement = movement.normalized * 10.0f * Time.deltaTime;
-        playerTransform.position += movement;
-
-        // remove inertia if not sprinting
-        if (sprintAction != null && !sprintAction.IsPressed())
+        try
         {
-            if (rbField != null)
+            if (!noclipActive || playerControllerInstance == null)
+                return;
+
+            if (jumpAction == null || crouchAction == null || sprintAction == null)
+                InitializeInputActions();
+
+            Camera cam = Camera.main;
+            if (cam == null)
             {
-                Rigidbody rb = rbField.GetValue(playerControllerInstance) as Rigidbody;
-                if (rb != null)
+                Debug.LogError("Camera.main is null!");
+                noclipActive = false;
+                return;
+            }
+
+            Vector3 movement = Vector3.zero;
+            Transform cameraTransform = cam.transform;
+            Transform playerTransform = ((MonoBehaviour)playerControllerInstance).transform;
+            if (playerTransform == null)
+            {
+                Debug.LogError("Player transform is null!");
+                noclipActive = false;
+                return;
+            }
+
+            // everyone use wasd, i think
+            if (Input.GetKey(KeyCode.W)) movement += cameraTransform.forward;
+            if (Input.GetKey(KeyCode.S)) movement -= cameraTransform.forward;
+            if (Input.GetKey(KeyCode.A)) movement -= cameraTransform.right;
+            if (Input.GetKey(KeyCode.D)) movement += cameraTransform.right;
+
+            if (jumpAction != null && jumpAction.IsPressed()) movement += Vector3.up;
+            if (crouchAction != null && crouchAction.IsPressed()) movement -= Vector3.up;
+
+            float speed = (sprintAction != null && sprintAction.IsPressed()) ? 20.0f : 10.0f;
+            movement = movement.normalized * speed * Time.deltaTime;
+            playerTransform.position += movement;
+
+            // remove inertia if not sprinting
+            if (sprintAction != null && !sprintAction.IsPressed())
+            {
+                if (rbField != null)
                 {
-                    rb.velocity = Vector3.zero;
+                    Rigidbody rb = rbField.GetValue(playerControllerInstance) as Rigidbody;
+                    if (rb != null)
+                    {
+                        rb.velocity = Vector3.zero;
+                    }
+                    else
+                    {
+                        Debug.LogError("Rigidbody (rb) is null!");
+                        noclipActive = false;
+                        return;
+                    }
                 }
             }
         }
+        catch (System.Exception ex)
+        {
+            Debug.LogError("Error in NoclipController.UpdateMovement: " + ex.Message);
+            noclipActive = false;
+            return;
+        }   
     }
 }
